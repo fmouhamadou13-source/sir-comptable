@@ -283,8 +283,7 @@ if st.session_state.page == "Tableau de Bord":
                         recents_articles = []
                         for facture in st.session_state.factures[-5:]:
                             for item in facture['Articles']:
-                                recents_articles.append(f"- {item['description']} ({item['montant']:,.0f} {st.session_s
-tate.currency})")
+                                recents_articles.append(f"- {item['description']} ({item['montant']:,.0f} {st.session_state.currency})")
                         recents_articles_str = "\n".join(recents_articles)
 
                     contexte_financier = (
@@ -745,4 +744,5 @@ elif st.session_state.page == "Paramètres":
     if st.session_state.company_signature:
         st.write(_("settings_current_signature"))
         st.image(st.session_state.company_signature, width=150)
+
 
