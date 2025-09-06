@@ -258,7 +258,7 @@ if st.session_state.page == "Tableau de Bord":
             st.info(_("no_expense_to_show"))
             
     st.markdown("---")
-    st.subheader(_("talk_to_sir_comptable"))
+    st.subheader(_("Paler_à_Sir_Comptable"))
     prompt = st.text_input("ask_your_question", label_visibility="collapsed", placeholder=_("ask_your_question"))
     
     if st.button(_("send")):
@@ -270,26 +270,38 @@ if st.session_state.page == "Tableau de Bord":
                     headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
                     
                     transactions_df = st.session_state.transactions
+                    
+                    # --- LIGNE MANQUANTE AJOUTÉE ICI ---
+                    depenses_df = transactions_df[transactions_df['Type'] == 'Dépense']
+                    
                     revenus = transactions_df[transactions_df['Type'] == 'Revenu']['Montant'].sum()
-                    depenses = transactions_df[transactions_df['Type'] == 'Dépense']['Montant'].sum()
+                    depenses = depenses_df['Montant'].sum()
                     solde = revenus - depenses
-                    montant_pour_million = 1_000_000 - solde
-                    depenses_par_cat_str = _("no_expense_to_show")
-                    if not depenses_df.empty:
-                        depenses_par_cat = depenses_df.groupby('Catégorie')['Montant'].sum()
-                        depenses_par_cat_str = ", ".join([f"{cat} ({val:,.0f} {st.session_state.currency})" for cat, val in depenses_par_cat.items()])
+                    
+                    recents_articles_str = "Aucune facture récente."
+                    if st.session_state.factures:
+                        recents_articles = []
+                        for facture in st.session_state.factures[-5:]:
+                            for item in facture['Articles']:
+                                recents_articles.append(f"- {item['description']} ({item['montant']:,.0f} {st.session_s
+tate.currency})")
+                        recents_articles_str = "\n".join(recents_articles)
 
                     contexte_financier = (
-                        f"Résumé financier: Solde net = {solde:,.0f} {st.session_state.currency}. "
-                        f"Détail des dépenses par catégorie: {depenses_par_cat_str}."
+                        f"Résumé financier : Solde net = {solde:,.0f} {st.session_state.currency}. "
+                        f"Voici le détail des articles des dernières factures pour analyse :\n{recents_articles_str}"
                     )
                     
-                    prompt_final = (f"<s>[INST] {_('ai_persona')} {_('ai_context_label')} : {contexte_financier} {_('ai_question_label')} : '{prompt}' [/INST]")
-                    
+                    prompt_final = (
+                        f"<s>[INST] {_('ai_persona')} "
+                        f"{_('ai_context_label')} : {contexte_financier} "
+                        f"{_('ai_question_label')} : '{prompt}' [/INST]"
+                    )
+
                     def query(payload):
                         response = requests.post(API_URL, headers=headers, json=payload)
                         return response.json()
-                        
+
                     output = query({"inputs": prompt_final, "parameters": {"max_new_tokens": 512, "return_full_text": False, "do_sample": True, "top_p": 0.9, "temperature": 0.7}})
                     
                     if isinstance(output, list) and 'generated_text' in output[0]:
@@ -298,6 +310,7 @@ if st.session_state.page == "Tableau de Bord":
                         st.error(f"{_('error_ai_response')} : {output['error']}")
                     else:
                         st.warning(f"{_('error_ai_unexpected')} : {output}")
+
                 except KeyError:
                     st.error(_("error_hf_token_missing"))
                 except Exception as e:
@@ -732,5 +745,4 @@ elif st.session_state.page == "Paramètres":
     if st.session_state.company_signature:
         st.write(_("settings_current_signature"))
         st.image(st.session_state.company_signature, width=150)
-
 
