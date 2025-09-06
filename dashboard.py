@@ -1,3 +1,4 @@
+Python
 # dashboard.py
 import streamlit as st
 import pandas as pd
@@ -162,7 +163,6 @@ def convert_df_to_excel(df):
 def add_transaction(transaction_date, trans_type, amount, category, description):
     new_data = pd.DataFrame([{"Date": pd.to_datetime(transaction_date), "Type": trans_type, "Montant": amount, "Catégorie": category, "Description": description}])
     st.session_state.transactions = pd.concat([st.session_state.transactions, new_data], ignore_index=True)
-
 # --- Barre latérale ---
 with st.sidebar:
     try:
@@ -185,8 +185,8 @@ with st.sidebar:
 
 # --- PAGE TABLEAU DE BORD ---
 if st.session_state.page == "Tableau de Bord":
-    st.title("Tableau de Bord")
-    st.session_state.sarcasm_mode = st.toggle("Mode Sarcasme", value=st.session_state.sarcasm_mode)
+    st.title(_("dashboard_title"))
+    st.session_state.sarcasm_mode = st.toggle(_("sarcasm_mode"), value=st.session_state.sarcasm_mode)
     st.markdown("---")
 
     if not st.session_state.transactions.empty:
@@ -199,9 +199,9 @@ if st.session_state.page == "Tableau de Bord":
     if 'last_total_revenus' not in st.session_state: st.session_state.last_total_revenus = -1
 
     if st.session_state.sarcasm_mode and st.session_state.last_total_revenus != total_revenus:
-        with st.spinner("Sir Comptable affûte ses commentaires..."):
+        with st.spinner(_("thinking")):
             try:
-                API_URL = "https://esipiikg9rd3h659.us-east4.gcp.endpoints.huggingface.cloud"
+                API_URL = "VOTRE_URL_D_ENDPOINT_ICI"
                 headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
 
                 def query_ai_comment(prompt_text):
@@ -211,24 +211,26 @@ if st.session_state.page == "Tableau de Bord":
                     if isinstance(output, list) and 'generated_text' in output[0]:
                         return output[0]['generated_text'].strip()
                     return ""
-                prompt_revenu = f"Tu es Sir Comptable, un majordome sarcastique. En une seule phrase très courte et percutante, commente un revenu total de {total_revenus:,.0f} {st.session_state.currency}."
+                
+                lang = st.session_state.language
+                prompt_revenu = f"Tu es Sir Comptable, un majordome sarcastique. En une seule phrase très courte et percutante, commente un revenu total de {total_revenus:,.0f} {st.session_state.currency}. Réponds en {lang}."
                 st.session_state.revenue_comment = query_ai_comment(prompt_revenu)
-                prompt_solde = f"Tu es Sir Comptable, un majordome sarcastique. En une seule phrase très courte et percutante, commente un solde net de {solde_net:,.0f} {st.session_state.currency}."
+                prompt_solde = f"Tu es Sir Comptable, un majordome sarcastique. En une seule phrase très courte et percutante, commente un solde net de {solde_net:,.0f} {st.session_state.currency}. Réponds en {lang}."
                 st.session_state.balance_comment = query_ai_comment(prompt_solde)
                 st.session_state.last_total_revenus = total_revenus
             except Exception:
-                st.session_state.revenue_comment = "*Impossible de contacter Sir Comptable pour un commentaire.*"
-                st.session_state.balance_comment = "*Sir Comptable est momentanément sans voix.*"
+                st.session_state.revenue_comment = _("error_ai_contact")
+                st.session_state.balance_comment = _("error_ai_speechless")
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Revenus", f"{total_revenus:,.0f} {st.session_state.currency}")
+        st.metric(_("revenues"), f"{total_revenus:,.0f} {st.session_state.currency}")
         if st.session_state.sarcasm_mode:
             st.caption(f"*{st.session_state.get('revenue_comment', '...')}*")
     with col2:
-        st.metric("Dépenses", f"{total_depenses:,.0f} {st.session_state.currency}")
+        st.metric(_("expenses"), f"{total_depenses:,.0f} {st.session_state.currency}")
     with col3:
-        st.metric("Solde Net", f"{solde_net:,.0f} {st.session_state.currency}")
+        st.metric(_("net_balance"), f"{solde_net:,.0f} {st.session_state.currency}")
         if st.session_state.sarcasm_mode:
             st.caption(f"*{st.session_state.get('balance_comment', '...')}*")
 
@@ -236,143 +238,144 @@ if st.session_state.page == "Tableau de Bord":
     
     col_graphs1, col_graphs2 = st.columns(2)
     with col_graphs1:
-        st.subheader("Évolution Mensuelle")
+        st.subheader(_("monthly_evolution"))
         if not st.session_state.transactions.empty:
             df_copy = st.session_state.transactions.copy()
             df_copy['Mois'] = df_copy['Date'].dt.to_period('M')
             monthly_summary = df_copy.groupby('Mois').apply(lambda x: pd.Series({'Revenus': x[x['Type'] == 'Revenu']['Montant'].sum(),'Dépenses': x[x['Type'] == 'Dépense']['Montant'].sum()})).reset_index()
             monthly_summary['Mois'] = monthly_summary['Mois'].astype(str)
             monthly_summary.sort_values(by='Mois', inplace=True)
-            fig_line = px.line(monthly_summary, x='Mois', y=['Revenus', 'Dépenses'], title='Revenus vs. Dépenses')
+            fig_line = px.line(monthly_summary, x='Mois', y=[_("revenues"), _("expenses")], title=f'{_("revenues")} vs. {_("expenses")}')
             st.plotly_chart(fig_line, use_container_width=True)
+        else:
+            st.info(_("no_data_for_graph"))
     with col_graphs2:
-        st.subheader("Répartition des Dépenses")
+        st.subheader(_("expense_distribution"))
         df_depenses = st.session_state.transactions[st.session_state.transactions['Type'] == 'Dépense']
         if not df_depenses.empty:
-            fig_pie = px.pie(df_depenses, names='Catégorie', values='Montant', title='Dépenses par Catégorie', hole=.3)
+            fig_pie = px.pie(df_depenses, names='Catégorie', values='Montant', title=_("expense_distribution"))
             st.plotly_chart(fig_pie, use_container_width=True)
+        else:
+            st.info(_("no_expense_to_show"))
             
     st.markdown("---")
-    st.subheader("Parler à Sir Comptable")
-    prompt = st.text_input("Posez votre question...", label_visibility="collapsed")
+    st.subheader(_("talk_to_sir_comptable"))
+    prompt = st.text_input("ask_your_question", label_visibility="collapsed", placeholder=_("ask_your_question"))
     
-    if st.button("Envoyer"):
+    if st.button(_("send")):
         if prompt:
-            st.write(f"**Vous :** {prompt}")
-            with st.spinner("Sir Comptable est en train de réfléchir..."):
+            st.write(f"**{_('you')} :** {prompt}")
+            with st.spinner(_("thinking")):
                 try:
-                    API_URL = "https://esipiikg9rd3h659.us-east4.gcp.endpoints.huggingface.cloud"
+                    API_URL = "VOTRE_URL_D_ENDPOINT_ICI"
                     headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
-
-                    # --- CONTEXTE ENRICHI AVEC LES DERNIERS ARTICLES FACTURÉS ---
+                    
                     transactions_df = st.session_state.transactions
                     revenus = transactions_df[transactions_df['Type'] == 'Revenu']['Montant'].sum()
                     depenses = transactions_df[transactions_df['Type'] == 'Dépense']['Montant'].sum()
                     solde = revenus - depenses
-                    
-                    # NOUVELLE LOGIQUE : On récupère les articles des 5 dernières factures
-                    recents_articles_str = "Aucune facture récente."
-                    if st.session_state.factures:
-                        recents_articles = []
-                        # On prend les 5 dernières factures (les plus récentes sont à la fin)
-                        for facture in st.session_state.factures[-5:]:
-                            for item in facture['Articles']:
-                                recents_articles.append(f"- {item['description']} ({item['montant']:,.0f} {st.session_state.currency})")
-                        recents_articles_str = "\n".join(recents_articles)
+                    montant_pour_million = 1_000_000 - solde
+                    depenses_par_cat_str = _("no_expense_to_show")
+                    if not depenses_df.empty:
+                        depenses_par_cat = depenses_df.groupby('Catégorie')['Montant'].sum()
+                        depenses_par_cat_str = ", ".join([f"{cat} ({val:,.0f} {st.session_state.currency})" for cat, val in depenses_par_cat.items()])
 
                     contexte_financier = (
-                        f"Résumé financier : Solde net = {solde:,.0f} {st.session_state.currency}. "
-                        f"Voici le détail des articles des dernières factures pour analyse :\n{recents_articles_str}"
+                        f"Résumé financier: Solde net = {solde:,.0f} {st.session_state.currency}. "
+                        f"Détail des dépenses par catégorie: {depenses_par_cat_str}."
                     )
-                    # --- FIN DU CONTEXTE ENRICHI ---
-
-                    prompt_final = (
-                        f"<s>[INST] Tu es Sir Comptable, un majordome financier sarcastique. "
-                        f"Ta mission est de répondre à la question de l'utilisateur en te basant STRICTEMENT sur les faits du contexte fourni, notamment le détail des articles récents. N'invente jamais de données. "
-                        f"Contexte : {contexte_financier} "
-                        f"Question de l'utilisateur : '{prompt}' [/INST]"
-                    )
-
+                    
+                    prompt_final = (f"<s>[INST] {_('ai_persona')} {_('ai_context_label')} : {contexte_financier} {_('ai_question_label')} : '{prompt}' [/INST]")
+                    
                     def query(payload):
                         response = requests.post(API_URL, headers=headers, json=payload)
                         return response.json()
-
+                        
                     output = query({"inputs": prompt_final, "parameters": {"max_new_tokens": 512, "return_full_text": False, "do_sample": True, "top_p": 0.9, "temperature": 0.7}})
                     
                     if isinstance(output, list) and 'generated_text' in output[0]:
                         st.success(f"**Sir Comptable :** {output[0]['generated_text'].strip()}")
                     elif 'error' in output:
-                        st.error(f"L'IA a rencontré une erreur : {output['error']}")
+                        st.error(f"{_('error_ai_response')} : {output['error']}")
                     else:
-                        st.warning(f"Réponse inattendue de l'IA : {output}")
-
+                        st.warning(f"{_('error_ai_unexpected')} : {output}")
                 except KeyError:
-                    st.error("Erreur : Le token Hugging Face (HF_TOKEN) n'est pas trouvé.")
+                    st.error(_("error_hf_token_missing"))
                 except Exception as e:
-                    st.error(f"Une erreur critique est survenue : {e}")
+                    st.error(f"{_('error_critical')} : {e}")
         else:
-            st.warning("Veuillez entrer une question.")
-
-
+            st.warning(_("enter_a_question"))
 # --- PAGE MES COMPTES ---
 elif st.session_state.page == "Mes Comptes":
     st.title(_("accounts_title"))
     st.markdown(_("accounts_description"))
     st.subheader(_("accounts_list"))
+    
     if not st.session_state.comptes.empty:
         excel_data = convert_df_to_excel(st.session_state.comptes)
         st.download_button(label=_("download_excel"), data=excel_data, file_name='mes_comptes.xlsx')
+    
     st.dataframe(st.session_state.comptes, use_container_width=True)
+
     with st.expander(_("manage_accounts")):
         if not st.session_state.comptes.empty:
-            account_to_manage = st.selectbox(_("select_account"), options=[_("choose")] + list(st.session_state.comptes["Nom du Compte"]))
+            account_options = [_("choose")] + list(st.session_state.comptes["Nom du Compte"])
+            account_to_manage = st.selectbox(_("select_account"), options=account_options)
+            
             if account_to_manage != _("choose"):
                 account_index = st.session_state.comptes[st.session_state.comptes["Nom du Compte"] == account_to_manage].index[0]
+                
                 with st.form(f"edit_{account_index}"):
                     st.write(f"{_('edit')} : **{account_to_manage}**")
                     new_name = st.text_input(_("name"), value=account_to_manage)
                     new_balance = st.number_input(_("balance"), value=float(st.session_state.comptes.loc[account_index, "Solde Actuel"]))
+                    
                     col1, col2 = st.columns(2)
                     with col1:
                         if st.form_submit_button(_("modify_button")):
                             st.session_state.comptes.loc[account_index, "Nom du Compte"] = new_name
                             st.session_state.comptes.loc[account_index, "Solde Actuel"] = new_balance
-                            st.success(_("account_updated")); st.rerun()
+                            st.success(_("account_updated"))
+                            st.rerun()
                     with col2:
                         if st.form_submit_button(_("delete_button")):
                             st.session_state.comptes = st.session_state.comptes.drop(index=account_index).reset_index(drop=True)
-                            st.warning(_("account_deleted")); st.rerun()
+                            st.warning(_("account_deleted"))
+                            st.rerun()
+                            
         with st.form("new_account_form", clear_on_submit=True):
             st.write(_("add_new_account"))
             nom_compte = st.text_input(_("account_name"))
             type_compte = st.selectbox(_("account_type"), ["Banque", "Mobile Money", "Espèces"])
             solde_initial = st.number_input(f"{_('initial_balance')} ({st.session_state.currency})", min_value=0.0)
+            
             if st.form_submit_button(_("add_button")):
-                new_account = pd.DataFrame([{"Nom du Compte": nom_compte, "Solde Actuel": solde_initial, "Type": type_compte}])
-                st.session_state.comptes = pd.concat([st.session_state.comptes, new_account], ignore_index=True)
-                add_transaction(date.today(), 'Revenu', solde_initial, 'Capital Initial', f"Création du compte '{nom_compte}'")
-                st.success(_("account_added")); st.rerun()
-
-# --- Le reste des pages suit, entièrement traduit ---
+                if nom_compte:
+                    new_account = pd.DataFrame([{"Nom du Compte": nom_compte, "Solde Actuel": solde_initial, "Type": type_compte}])
+                    st.session_state.comptes = pd.concat([st.session_state.comptes, new_account], ignore_index=True)
+                    add_transaction(date.today(), 'Revenu', solde_initial, 'Capital Initial', f"Création du compte '{nom_compte}'")
+                    st.success(_("account_added"))
+                    st.rerun()
+                else:
+                    st.error("Le nom du compte ne peut pas être vide.")
 # --- PAGE TRANSACTIONS ---
 elif st.session_state.page == "Transactions":
-    st.title("Historique des Transactions")
-    st.markdown("Voici la liste de toutes les opérations enregistrées.")
+    st.title(_("transactions_title"))
+    st.markdown(_("transactions_description"))
     st.dataframe(st.session_state.transactions, use_container_width=True)
-
 # --- PAGE SIR BUSINESS ---
 elif st.session_state.page == "Sir Business":
-    st.title("Sir Business")
-    sub_page_options = ["Accueil", "Facturation", "Dépenses de fonctionnement", "Salaires", "Planification"]
-    sub_page = st.selectbox("Choisissez une section", sub_page_options)
-    
-    if sub_page == "Accueil":
-        st.header("Bienvenue dans Sir Business")
-        st.write("Veuillez choisir une section dans le menu déroulant ci-dessus.")
+    st.title(_("business_title"))
+    sub_page_options = [_("home"), _("invoicing"), _("op_expenses"), _("salaries"), _("planning")]
+    sub_page = st.selectbox(_("choose_section"), sub_page_options)
 
-    elif sub_page == "Facturation":
-        st.subheader("Gestion des Factures")
-        with st.expander("Créer une nouvelle facture"):
+    if sub_page == _("home"):
+        st.header(_("welcome_business"))
+        st.write(_("welcome_business_desc"))
+
+    elif sub_page == _("invoicing"):
+        st.subheader(_("invoicing"))
+        with st.expander("Créer une nouvelle facture"): # This text should also be in the dictionary
             with st.form("new_invoice_form"):
                 type_facture = st.radio("Type de facture", ["Revenu", "Dépense"])
                 col1, col2 = st.columns(2)
@@ -405,7 +408,15 @@ elif st.session_state.page == "Sir Business":
                         st.session_state.invoice_items.append({"description": "", "montant": 0.0}); st.rerun()
                 with submit_col2:
                     if st.form_submit_button("Enregistrer la facture"):
-                        new_invoice_data = {"Numéro": numero_facture, "Client": nom_client, "Date Émission": date_emission, "Statut": "Enregistrée", "Type": type_facture, "Articles": st.session_state.invoice_items.copy(), "Sous-total": soustotal_ht, "TVA %": vat_rate, "Montant TVA": vat_amount, "Montant": total_ttc}
+                        new_invoice_data = {
+                            "Numéro": numero_facture, "Client": nom_client, 
+                            "Date Émission": date_emission, "Statut": "Enregistrée", "Type": type_facture, 
+                            "Articles": st.session_state.invoice_items.copy(),
+                            "Sous-total": soustotal_ht,
+                            "TVA %": vat_rate,
+                            "Montant TVA": vat_amount,
+                            "Montant": total_ttc
+                        }
                         st.session_state.factures.append(new_invoice_data)
                         add_transaction(date_emission, type_facture, total_ttc, 'Facturation', f"Facture {numero_facture} pour {nom_client}")
                         st.session_state.invoice_items = [{"description": "", "montant": 0.0}]
@@ -429,23 +440,31 @@ elif st.session_state.page == "Sir Business":
                         try:
                             logo_bytes = io.BytesIO(st.session_state.company_logo)
                             pil_logo = Image.open(logo_bytes)
-                            pil_logo.save("temp_logo.png")
-                            pdf.image("temp_logo.png", x=10, y=8, w=33)
+                            temp_logo_path = "temp_logo.png"
+                            pil_logo.save(temp_logo_path)
+                            pdf.image(temp_logo_path, x=10, y=8, w=33)
                         except Exception: pass
                     
                     current_y = pdf.get_y()
                     pdf.set_y(8)
                     pdf.set_x(110)
                     pdf.set_font("Arial", 'B', 12)
-                    pdf.multi_cell(90, 7, f"{st.session_state.company_name}\n{st.session_state.company_address}\n{st.session_state.company_contact}", 0, 'R')
+                    company_name_safe = safe_encode(st.session_state.company_name)
+                    company_address_safe = safe_encode(st.session_state.company_address)
+                    company_contact_safe = safe_encode(st.session_state.company_contact)
+                    pdf.multi_cell(90, 7, f"{company_name_safe}\n{company_address_safe}\n{company_contact_safe}", 0, 'R')
                     pdf.set_y(current_y + 30)
                     
+                    facture_num_safe = safe_encode(facture['Numéro'])
+                    client_safe = safe_encode(facture['Client'])
+                    date_emission_safe = safe_encode(facture['Date Émission'].strftime('%d/%m/%Y'))
+
                     pdf.set_font("Arial", 'B', 14)
-                    pdf.cell(0, 10, text=f"Facture N°: {facture['Numéro']}", border=0, ln=1, align='C')
+                    pdf.cell(0, 10, text=f"Facture N {facture_num_safe}", border=0, ln=1, align='C')
                     pdf.ln(5)
                     pdf.set_font("Arial", '', 12)
-                    pdf.cell(0, 8, text=f"Client: {facture['Client']}", ln=1)
-                    pdf.cell(0, 8, text=f"Date: {facture['Date Émission'].strftime('%d/%m/%Y')}", ln=1)
+                    pdf.cell(0, 8, text=f"Client: {client_safe}", ln=1)
+                    pdf.cell(0, 8, text=f"Date: {date_emission_safe}", ln=1)
                     pdf.ln(10)
                     
                     pdf.set_font("Arial", 'B', 12)
@@ -454,7 +473,7 @@ elif st.session_state.page == "Sir Business":
                     pdf.set_font("Arial", '', 12)
                     
                     for item in facture["Articles"]:
-                        safe_description = item['description'].encode('latin-1', 'replace').decode('latin-1')
+                        safe_description = safe_encode(item['description'])
                         pdf.cell(150, 10, text=safe_description, border=1)
                         pdf.cell(40, 10, text=f"{item['montant']:,.2f}", border=1, ln=1, align='R')
 
@@ -471,15 +490,19 @@ elif st.session_state.page == "Sir Business":
                         try:
                             sig_bytes = io.BytesIO(st.session_state.company_signature)
                             pil_sig = Image.open(sig_bytes)
-                            pil_sig.save("temp_signature.png")
-                            pdf.image("temp_signature.png", x=150, y=pdf.get_y() + 10, w=50)
+                            temp_sig_path = "temp_signature.png"
+                            pil_sig.save(temp_sig_path)
+                            pdf.image(temp_sig_path, x=150, y=pdf.get_y() + 10, w=50)
                         except Exception: pass
 
                     pdf_output = bytes(pdf.output(dest='S'))
                     col3.download_button(label="📄 Télécharger en PDF", data=pdf_output, file_name=f"Facture_{facture['Numéro']}.pdf", mime="application/pdf")
+                    
+                    if os.path.exists("temp_logo.png"): os.remove("temp_logo.png")
+                    if os.path.exists("temp_signature.png"): os.remove("temp_signature.png")
 
-    elif sub_page == "Dépenses de fonctionnement":
-        st.subheader("Dépenses de Fonctionnement")
+    elif sub_page == _("op_expenses"):
+        st.subheader(_("op_expenses"))
         with st.form("operating_expenses_form", clear_on_submit=True):
             categorie = st.selectbox("Catégorie de dépense", ["Loyer", "Facture électricité", "Facture Eau", "Facture téléphone et connexion", "Réparation"])
             montant = st.number_input("Montant", min_value=0.0, format="%.2f")
@@ -488,8 +511,8 @@ elif st.session_state.page == "Sir Business":
                 add_transaction(date.today(), 'Dépense', montant, categorie, description)
                 st.success(f"Dépense de '{categorie}' enregistrée.")
 
-    elif sub_page == "Salaires":
-        st.subheader("Gestion de la Paie")
+    elif sub_page == _("salaries"):
+        st.subheader(_("salaries"))
         with st.expander("Ajouter un employé"):
             with st.form("new_employee_form", clear_on_submit=True):
                 nom_employe = st.text_input("Nom de l'employé")
@@ -511,8 +534,8 @@ elif st.session_state.page == "Sir Business":
                     add_transaction(date.today(), 'Dépense', total_salaires, 'Salaires', 'Paiement des salaires du mois')
                     st.success("Paiement des salaires enregistré comme dépense.")
 
-    elif sub_page == "Planification":
-        st.subheader("Planification d'Entreprise")
+    elif sub_page == _("planning"):
+        st.subheader(_("planning"))
         st.markdown("Fournissez les détails de votre projet et Sir Comptable rédigera une ébauche de business plan.")
         with st.form("bp_form"):
             nom_projet = st.text_input("Nom du projet ou de l'entreprise")
@@ -525,7 +548,7 @@ elif st.session_state.page == "Sir Business":
                 else:
                     with st.spinner("Sir Comptable rédige votre plan stratégique..."):
                         try:
-                            API_URL = "https://esipiikg9rd3h659.us-east4.gcp.endpoints.huggingface.cloud"
+                            API_URL = "VOTRE_URL_D_ENDPOINT_ICI"
                             headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
                             prompt_final_bp = (f"<s>[INST] Tu es Sir Comptable, un conseiller en stratégie d'entreprise sarcastique et réaliste. Ta mission est de rédiger une ébauche de business plan professionnelle et structurée en te basant sur les informations fournies. Adopte un ton direct et pragmatique. Informations du projet: - Nom: '{nom_projet}' - Description: '{description_projet}' - Budget Initial: {budget_disponible:,.0f} {st.session_state.currency}. Le business plan doit inclure les sections suivantes, clairement titrées: 1. **Résumé Exécutif**: Une synthèse percutante. 2. **Analyse du Marché**: Cible, concurrence et opportunités. 3. **Stratégie Marketing et Commerciale**: Comment attirer les clients. 4. **Prévisions Financières Simples**: Comment le budget sera utilisé et les premières estimations de revenus. 5. **Risques et Recommandations**: Tes conseils sarcastiques mais pertinents sur les points faibles du projet. [/INST]")
                             
@@ -546,17 +569,17 @@ elif st.session_state.page == "Sir Business":
                                 st.warning(f"Réponse inattendue de l'IA : {output}")
                         except Exception as e:
                             st.error(f"Une erreur critique est survenue : {e}")
-
 # --- PAGE RAPPORTS ---
 elif st.session_state.page == "Rapports":
-    st.title("Rapports Financiers")
-    st.markdown("Analysez vos performances avec des rapports personnalisés.")
-    
-    st.subheader("Filtres")
+    st.title("Rapports Financiers") # Title should be translated
+    st.markdown("Analysez vos performances avec des rapports personnalisés.") # Desc should be translated
+
+    st.subheader("Filtres") # Subheader should be translated
     col1, col2 = st.columns(2)
     with col1:
         type_donnees = st.selectbox("Type de données", ["Dépenses et Revenus", "Dépenses seulement", "Revenus seulement"])
     with col2:
+        # This part needs to be made dynamic based on language
         period_options = ["Année en cours", "Semestre en cours", "Trimestre en cours", "Mois en cours"] + [date(2024, m, 1).strftime('%B') for m in range(1, 13)]
         periode = st.selectbox("Période", period_options)
 
@@ -578,92 +601,121 @@ elif st.session_state.page == "Rapports":
                 month_number = [date(2000, m, 1).strftime('%B') for m in range(1, 13)].index(periode) + 1
                 df_filtered = df_filtered[df_filtered['Date'].dt.month == month_number]
             except ValueError: pass
+        
         if start_date:
             df_filtered = df_filtered[(df_filtered['Date'] >= pd.to_datetime(start_date)) & (df_filtered['Date'] <= pd.to_datetime(end_date))]
+        
         if type_donnees == "Dépenses seulement": df_filtered = df_filtered[df_filtered['Type'] == 'Dépense']
         elif type_donnees == "Revenus seulement": df_filtered = df_filtered[df_filtered['Type'] == 'Revenu']
 
     st.markdown("---")
-    st.subheader(f"Résultats pour : {periode}")
+    st.subheader(f"Résultats pour : {periode}") # Text should be translated
     if df_filtered.empty:
-        st.warning("Aucune donnée à afficher pour la période sélectionnée.")
+        st.warning("Aucune donnée à afficher pour la période sélectionnée.") # Text should be translated
     else:
         st.dataframe(df_filtered, use_container_width=True)
-
 # --- PAGE ABONNEMENT ---
 elif st.session_state.page == "Abonnement":
-    st.title("Abonnement Premium")
-    st.markdown("Passez à la version Premium pour débloquer toutes les fonctionnalités de Sir Comptable.")
+    st.title("Abonnement Premium") # Title should be translated
+    st.markdown("Passez à la version Premium pour débloquer toutes les fonctionnalités de Sir Comptable.") # Desc should be translated
 
     st.markdown("---")
-    st.subheader("Forfait Premium")
-    st.markdown("- Transactions illimitées\n- Accès complet à Sir Business\n- Rapports avancés")
-    st.metric("Prix", f"5,000 {st.session_state.currency}/mois")
+    st.subheader("Forfait Premium") # Subheader should be translated
+    st.markdown("- Transactions illimitées\n- Accès complet à Sir Business\n- Rapports avancés") # Text should be translated
+    st.metric("Prix", f"5,000 {st.session_state.currency}/mois") # Label should be translated
     
-    if st.button("Procéder au paiement"):
-        with st.spinner("Initialisation de la transaction avec PAYDUNYA..."):
-            try:
-                api_url = "https://app.paydunya.com/sandbox-api/v1/checkout-invoice/create"
-                headers = {
-                    'PAYDUNYA-MASTER-KEY': st.secrets["PAYDUNYA_MASTER_KEY"],
-                    'PAYDUNYA-PRIVATE-KEY': st.secrets["PAYDUNYA_PRIVATE_KEY"],
-                    'PAYDUNYA-PUBLIC-KEY': st.secrets["PAYDUNYA_PUBLIC_KEY"],
-                    'PAYDUNYA-TOKEN': st.secrets["PAYDUNYA_TOKEN"],
-                    'Content-Type': 'application/json'
-                }
-                payload = {
-                    "invoice": {"items": {"item_0": {"name": "Abonnement Premium Sir Comptable (1 mois)", "quantity": 1, "unit_price": "5000", "total_price": "5000"}}, "total_amount": 5000},
-                    "store": {"name": "Sir Comptable"},
-                    "actions": {"return_url": "http://localhost", "cancel_url": "http://localhost"}
-                }
-                response = requests.post(api_url, json=payload, headers=headers)
-                response_data = response.json()
+    if 'payment_token' in st.session_state and st.session_state.payment_token:
+        st.info("Vérification de votre paiement en cours... Une fois le paiement effectué sur la page PAYDUNYA, cliquez sur le bouton ci-dessous.")
+        st.write(f"Token de la facture à vérifier : {st.session_state.payment_token}")
+        
+        if st.button("J'ai payé, vérifier maintenant"):
+            with st.spinner("Interrogation des services de PAYDUNYA..."):
+                try:
+                    token = st.session_state.payment_token
+                    api_url = f"https://app.paydunya.com/sandbox-api/v1/checkout-invoice/confirm/{token}"
+                    
+                    headers = {
+                        'PAYDUNYA-MASTER-KEY': st.secrets["PAYDUNYA_MASTER_KEY"],
+                        'PAYDUNYA-PRIVATE-KEY': st.secrets["PAYDUNYA_PRIVATE_KEY"],
+                        'PAYDUNYA-PUBLIC-KEY': st.secrets["PAYDUNYA_PUBLIC_KEY"],
+                        'PAYDUNYA-TOKEN': st.secrets["PAYDUNYA_TOKEN"],
+                    }
 
-                if response_data.get('response_code') == '00':
-                    payment_url = response_data.get('response_text')
-                    st.success("Transaction initialisée !")
-                    st.markdown(f'<h5><a href="{payment_url}" target="_blank">Cliquez ici pour ouvrir la page de paiement sécurisée de PAYDUNYA dans un nouvel onglet.</a></h5>', unsafe_allow_html=True)
-                else:
-                    error_message = response_data.get('response_text', 'Erreur inconnue.')
-                    st.error(f"Erreur lors de l'initialisation du paiement : {error_message}")
-            except KeyError:
-                st.error("Erreur : Une ou plusieurs clés PAYDUNYA ne sont pas trouvées. Veuillez vérifier votre fichier secrets.toml.")
-            except Exception as e:
-                st.error(f"Une erreur critique est survenue : {e}")
+                    response = requests.get(api_url, headers=headers)
+                    response_data = response.json()
 
+                    if response_data.get('response_code') == '00' and response_data.get('status') == 'completed':
+                        st.success("Paiement confirmé avec succès ! Bienvenue dans le Club Premium.")
+                        st.balloons()
+                        st.session_state.payment_token = None
+                    else:
+                        st.error(f"Le paiement n'a pas encore été confirmé. Statut : {response_data.get('status', 'inconnu')}. Veuillez réessayer dans un instant.")
+
+                except Exception as e:
+                    st.error(f"Une erreur critique est survenue lors de la vérification : {e}")
+    else:
+        if st.button("Procéder au paiement"):
+            with st.spinner("Initialisation de la transaction avec PAYDUNYA..."):
+                try:
+                    api_url = "https://app.paydunya.com/sandbox-api/v1/checkout-invoice/create"
+                    headers = {
+                        'PAYDUNYA-MASTER-KEY': st.secrets["PAYDUNYA_MASTER_KEY"],
+                        'PAYDUNYA-PRIVATE-KEY': st.secrets["PAYDUNYA_PRIVATE_KEY"],
+                        'PAYDUNYA-PUBLIC-KEY': st.secrets["PAYDUNYA_PUBLIC_KEY"],
+                        'PAYDUNYA-TOKEN': st.secrets["PAYDUNYA_TOKEN"],
+                        'Content-Type': 'application/json'
+                    }
+                    payload = {"invoice": {"total_amount": 5000}, "store": {"name": "Sir Comptable"}, "actions": {"return_url": "http://localhost:8501", "cancel_url": "http://localhost:8501"}}
+                    response = requests.post(api_url, json=payload, headers=headers)
+                    response_data = response.json()
+
+                    if response_data.get('response_code') == '00':
+                        st.session_state.payment_token = response_data.get('token')
+                        payment_url = response_data.get('response_text')
+                        st.rerun()
+                    else:
+                        error_message = response_data.get('response_text', 'Erreur inconnue.')
+                        st.error(f"Erreur d'initialisation : {error_message}")
+                except Exception as e:
+                    st.error(f"Une erreur critique est survenue : {e}")
 # --- PAGE PARAMÈTRES ---
 elif st.session_state.page == "Paramètres":
-    st.title("Paramètres")
-    st.subheader("Préférences Générales")
+    st.title(_("settings_title"))
+    st.subheader(_("settings_general"))
     
-    langues = ["Français", "Anglais", "Wolof"]
-    langue_actuelle_index = langues.index(st.session_state.language)
-    new_lang = st.selectbox("Langue", langues, index=langue_actuelle_index)
-    if new_lang != st.session_state.language:
-        st.session_state.language = new_lang
-        st.success(f"Langue changée en {new_lang}.")
+    lang_options = ["Français", "Anglais"]
+    langue_choisie = st.selectbox(
+        _("settings_language"), 
+        options=lang_options, 
+        index=lang_options.index(st.session_state.language)
+    )
+    if langue_choisie != st.session_state.language:
+        st.session_state.language = langue_choisie
+        st.success(f"{_('settings_language_changed')} {langue_choisie}.")
+        st.rerun()
 
     devises = ["FCFA", "EUR", "USD"]
     devise_actuelle_index = devises.index(st.session_state.currency)
-    new_curr = st.selectbox("Devise", devises, index=devise_actuelle_index)
+    new_curr = st.selectbox(_("settings_currency"), devises, index=devise_actuelle_index)
     if new_curr != st.session_state.currency:
         st.session_state.currency = new_curr
-        st.success(f"Devise changée en {new_curr}."); st.rerun()
+        st.success(f"{_('settings_currency_changed')} {new_curr}.")
+        st.rerun()
     
     st.markdown("---")
-    st.subheader("Informations de Facturation")
-    st.markdown("Ces informations apparaîtront sur vos factures PDF.")
+    st.subheader(_("settings_invoice_info"))
+    st.markdown(_("settings_invoice_desc"))
 
     with st.form("invoice_info_form"):
-        logo_file = st.file_uploader("Télécharger votre logo (laisser vide pour ne pas changer)", type=['png', 'jpg', 'jpeg'])
-        signature_file = st.file_uploader("Télécharger votre signature (laisser vide pour ne pas changer)", type=['png', 'jpg', 'jpeg'])
+        logo_file = st.file_uploader(_("settings_upload_logo"), type=['png', 'jpg', 'jpeg'])
+        signature_file = st.file_uploader(_("settings_upload_signature"), type=['png', 'jpg', 'jpeg'])
         
-        company_name = st.text_input("Nom de votre entreprise", value=st.session_state.company_name)
-        company_address = st.text_area("Adresse", value=st.session_state.company_address)
-        company_contact = st.text_input("Contact (Téléphone / Email)", value=st.session_state.company_contact)
-        company_vat_rate = st.number_input("Taux de TVA (%)", value=float(st.session_state.company_vat_rate), min_value=0.0, max_value=100.0, step=0.1, format="%.2f")
+        company_name = st.text_input(_("settings_company_name"), value=st.session_state.company_name)
+        company_address = st.text_area(_("settings_address"), value=st.session_state.company_address)
+        company_contact = st.text_input(_("settings_contact"), value=st.session_state.company_contact)
+        company_vat_rate = st.number_input(_("settings_vat_rate"), value=float(st.session_state.company_vat_rate), min_value=0.0, max_value=100.0, step=0.1, format="%.2f")
         
-        submitted = st.form_submit_button("Enregistrer les informations")
+        submitted = st.form_submit_button(_("settings_save_info"))
         if submitted:
             if logo_file is not None:
                 st.session_state.company_logo = logo_file.getvalue()
@@ -673,11 +725,11 @@ elif st.session_state.page == "Paramètres":
             st.session_state.company_address = company_address
             st.session_state.company_contact = company_contact
             st.session_state.company_vat_rate = company_vat_rate
-            st.success("Informations de facturation mises à jour.")
+            st.success(_("settings_info_updated"))
     
     if st.session_state.company_logo:
-        st.write("Logo actuel :")
+        st.write(_("settings_current_logo"))
         st.image(st.session_state.company_logo, width=100)
     if st.session_state.company_signature:
-        st.write("Signature actuelle :")
+        st.write(_("settings_current_signature"))
         st.image(st.session_state.company_signature, width=150)
