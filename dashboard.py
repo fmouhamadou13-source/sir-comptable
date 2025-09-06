@@ -200,7 +200,7 @@ if st.session_state.page == "Tableau de Bord":
     if st.session_state.sarcasm_mode and st.session_state.last_total_revenus != total_revenus:
         with st.spinner(_("thinking")):
             try:
-                API_URL = "VOTRE_URL_D_ENDPOINT_ICI"
+                API_URL = "https://esipiikg9rd3h659.us-east4.gcp.endpoints.huggingface.cloud"
                 headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
 
                 def query_ai_comment(prompt_text):
@@ -266,7 +266,7 @@ if st.session_state.page == "Tableau de Bord":
             st.write(f"**{_('you')} :** {prompt}")
             with st.spinner(_("thinking")):
                 try:
-                    API_URL = "VOTRE_URL_D_ENDPOINT_ICI"
+                    API_URL = "https://esipiikg9rd3h659.us-east4.gcp.endpoints.huggingface.cloud"
                     headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
                     
                     transactions_df = st.session_state.transactions
@@ -547,7 +547,7 @@ elif st.session_state.page == "Sir Business":
                 else:
                     with st.spinner("Sir Comptable rédige votre plan stratégique..."):
                         try:
-                            API_URL = "VOTRE_URL_D_ENDPOINT_ICI"
+                            API_URL = "https://esipiikg9rd3h659.us-east4.gcp.endpoints.huggingface.cloud"
                             headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
                             prompt_final_bp = (f"<s>[INST] Tu es Sir Comptable, un conseiller en stratégie d'entreprise sarcastique et réaliste. Ta mission est de rédiger une ébauche de business plan professionnelle et structurée en te basant sur les informations fournies. Adopte un ton direct et pragmatique. Informations du projet: - Nom: '{nom_projet}' - Description: '{description_projet}' - Budget Initial: {budget_disponible:,.0f} {st.session_state.currency}. Le business plan doit inclure les sections suivantes, clairement titrées: 1. **Résumé Exécutif**: Une synthèse percutante. 2. **Analyse du Marché**: Cible, concurrence et opportunités. 3. **Stratégie Marketing et Commerciale**: Comment attirer les clients. 4. **Prévisions Financières Simples**: Comment le budget sera utilisé et les premières estimations de revenus. 5. **Risques et Recommandations**: Tes conseils sarcastiques mais pertinents sur les points faibles du projet. [/INST]")
                             
@@ -732,4 +732,5 @@ elif st.session_state.page == "Paramètres":
     if st.session_state.company_signature:
         st.write(_("settings_current_signature"))
         st.image(st.session_state.company_signature, width=150)
+
 
