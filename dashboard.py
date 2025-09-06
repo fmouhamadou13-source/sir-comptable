@@ -1,4 +1,3 @@
-Python
 # dashboard.py
 import streamlit as st
 import pandas as pd
@@ -733,3 +732,4 @@ elif st.session_state.page == "Paramètres":
     if st.session_state.company_signature:
         st.write(_("settings_current_signature"))
         st.image(st.session_state.company_signature, width=150)
+
