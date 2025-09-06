@@ -258,7 +258,7 @@ if st.session_state.page == "Tableau de Bord":
             st.info(_("no_expense_to_show"))
             
     st.markdown("---")
-    st.subheader(_("Paler_à_Sir_Comptable"))
+    st.subheader(_("Parler à Sir Comptable"))
     prompt = st.text_input("ask_your_question", label_visibility="collapsed", placeholder=_("ask_your_question"))
     
     if st.button(_("send")):
@@ -744,5 +744,6 @@ elif st.session_state.page == "Paramètres":
     if st.session_state.company_signature:
         st.write(_("settings_current_signature"))
         st.image(st.session_state.company_signature, width=150)
+
 
 
