@@ -135,6 +135,11 @@ if 'company_address' not in st.session_state: st.session_state.company_address =
 if 'company_contact' not in st.session_state: st.session_state.company_contact = ""
 if 'company_signature' not in st.session_state: st.session_state.company_signature = None
 if 'company_vat_rate' not in st.session_state: st.session_state.company_vat_rate = 0.0
+# ... (après les autres initialisations)
+if 'bp_step' not in st.session_state:
+    st.session_state.bp_step = 0
+if 'bp_data' not in st.session_state:
+    st.session_state.bp_data = {}
 
 # --- Configuration de la page ---
 st.set_page_config(page_title=_("app_title"), page_icon="📊", layout="wide")
@@ -547,39 +552,120 @@ elif st.session_state.page == "Sir Business":
 
     elif sub_page == _("planning"):
         st.subheader(_("planning"))
-        st.markdown("Fournissez les détails de votre projet et Sir Comptable rédigera une ébauche de business plan.")
-        with st.form("bp_form"):
-            nom_projet = st.text_input("Nom du projet ou de l'entreprise")
-            description_projet = st.text_area("Description détaillée du projet (activité, cible, objectifs)")
-            budget_disponible = st.number_input(f"Budget de départ disponible ({st.session_state.currency})", min_value=0)
-            submitted = st.form_submit_button("Générer l'ébauche")
-            if submitted:
-                if not nom_projet or not description_projet:
-                    st.error("Veuillez renseigner au moins le nom et la description du projet.")
-                else:
-                    with st.spinner("Sir Comptable rédige votre plan stratégique..."):
-                        try:
-                            API_URL = "https://esipiikg9rd3h659.us-east4.gcp.endpoints.huggingface.cloud"
-                            headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
-                            prompt_final_bp = (f"<s>[INST] Tu es Sir Comptable, un conseiller en stratégie d'entreprise sarcastique et réaliste. Ta mission est de rédiger une ébauche de business plan professionnelle et structurée en te basant sur les informations fournies. Adopte un ton direct et pragmatique. Informations du projet: - Nom: '{nom_projet}' - Description: '{description_projet}' - Budget Initial: {budget_disponible:,.0f} {st.session_state.currency}. Le business plan doit inclure les sections suivantes, clairement titrées: 1. **Résumé Exécutif**: Une synthèse percutante. 2. **Analyse du Marché**: Cible, concurrence et opportunités. 3. **Stratégie Marketing et Commerciale**: Comment attirer les clients. 4. **Prévisions Financières Simples**: Comment le budget sera utilisé et les premières estimations de revenus. 5. **Risques et Recommandations**: Tes conseils sarcastiques mais pertinents sur les points faibles du projet. [/INST]")
-                            
-                            def query(payload):
-                                response = requests.post(API_URL, headers=headers, json=payload)
-                                return response.json()
-                            
-                            output = query({"inputs": prompt_final_bp, "parameters": {"max_new_tokens": 1024, "return_full_text": False, "do_sample": True, "top_p": 0.9, "temperature": 0.7}})
-                            
-                            if isinstance(output, list) and 'generated_text' in output[0]:
-                                response_text = output[0]['generated_text']
-                                st.markdown("---")
-                                st.subheader("Proposition de Business Plan par Sir Comptable")
-                                st.markdown(response_text)
-                            elif 'error' in output:
-                                st.error(f"L'IA a rencontré une erreur : {output['error']}")
-                            else:
-                                st.warning(f"Réponse inattendue de l'IA : {output}")
-                        except Exception as e:
-                            st.error(f"Une erreur critique est survenue : {e}")
+        st.markdown("Un entretien stratégique avec Sir Comptable pour construire votre business plan étape par étape.")
+
+        # --- ÉTAPE 0 : IDÉE INITIALE ---
+        if st.session_state.bp_step == 0:
+            with st.form("bp_form_step0"):
+                st.write("**Étape 1 : Votre Idée**")
+                nom_projet = st.text_input("Nom du projet ou de l'entreprise")
+                description_projet = st.text_area("Description détaillée du projet (activité, cible, objectifs)")
+                budget_disponible = st.number_input(f"Budget de départ disponible ({st.session_state.currency})", min_value=0)
+                
+                submitted = st.form_submit_button("Soumettre et passer à l'analyse du marché")
+
+                if submitted:
+                    if not nom_projet or not description_projet:
+                        st.error("Veuillez renseigner au moins le nom et la description.")
+                    else:
+                        st.session_state.bp_data['nom'] = nom_projet
+                        st.session_state.bp_data['description'] = description_projet
+                        st.session_state.bp_data['budget'] = budget_disponible
+                        st.session_state.bp_step = 1
+                        st.rerun()
+
+        # --- ÉTAPE 1 : GÉNÉRATION DES QUESTIONS SUR LE MARCHÉ ---
+        elif st.session_state.bp_step == 1:
+            with st.spinner("Sir Comptable analyse votre idée et prépare ses questions..."):
+                try:
+                    # On affiche un résumé de l'idée
+                    st.info(f"**Projet :** {st.session_state.bp_data['nom']}\n\n**Description :** {st.session_state.bp_data['description']}")
+                    
+                    if 'market_questions' not in st.session_state.bp_data:
+                        API_URL = "https://esipiikg9rd3h659.us-east4.gcp.endpoints.huggingface.cloud"
+                        headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
+                        
+                        prompt_questions = f"<s>[INST] Tu es un consultant en stratégie. Basé sur cette idée d'entreprise (Nom: {st.session_state.bp_data['nom']}, Description: {st.session_state.bp_data['description']}), pose exactement 3 questions courtes et numérotées pour analyser le marché (clientèle cible, concurrents, avantage unique). [/INST]"
+                        
+                        response = requests.post(API_URL, headers=headers, json={
+                            "inputs": prompt_questions, 
+                            "parameters": {
+                                "max_new_tokens": 200,
+                                "return_full_text": False, # L'instruction de discrétion
+                                "do_sample": True,
+                                "temperature": 0.7
+                            }
+                        }).json()
+                        questions = response[0]['generated_text']
+                        st.session_state.bp_data['market_questions'] = questions
+
+                    st.markdown("---")
+                    st.write("**Étape 2 : Analyse du Marché**")
+                    st.write(st.session_state.bp_data['market_questions'])
+                    
+                    with st.form("bp_form_step1"):
+                        market_answers = st.text_area("Vos réponses aux questions ci-dessus :", height=200)
+                        submitted = st.form_submit_button("Soumettre et passer à la stratégie")
+                        if submitted:
+                            st.session_state.bp_data['market_answers'] = market_answers
+                            st.session_state.bp_step = 2
+                            st.rerun()
+
+                except Exception as e:
+                    st.error(f"Une erreur est survenue : {e}")
+                    if st.button("Recommencer"):
+                        st.session_state.bp_step = 0
+                        st.session_state.bp_data = {}
+                        st.rerun()
+
+        # --- ÉTAPE 2 : GÉNÉRATION DU BUSINESS PLAN FINAL ---
+        elif st.session_state.bp_step == 2:
+            with st.spinner("Sir Comptable compile toutes les informations et rédige le plan final..."):
+                try:
+                    if 'final_plan' not in st.session_state.bp_data:
+                        API_URL = "https://esipiikg9rd3h659.us-east4.gcp.endpoints.huggingface.cloud"
+                        headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
+
+                        final_prompt = (
+                            f"<s>[INST] Tu es Sir Comptable, un consultant expert. Rédige un business plan structuré et détaillé en te basant sur les informations suivantes. Adopte un ton professionnel et sarcastique. "
+                            f"\n\n**IDÉE DE BASE :**\nNom: {st.session_state.bp_data['nom']}\nDescription: {st.session_state.bp_data['description']}\nBudget: {st.session_state.bp_data['budget']} {st.session_state.currency}"
+                            f"\n\n**ANALYSE DU MARCHÉ (fournie par l'utilisateur) :**\n{st.session_state.bp_data['market_answers']}"
+                            f"\n\n**STRUCTURE REQUISE :**\n"
+                            f"1. **Résumé Exécutif**\n"
+                            f"2. **Analyse du Marché** (basée sur les réponses de l'utilisateur)\n"
+                            f"3. **Stratégie Marketing et Commerciale**\n"
+                            f"4. **Prévisions Financières Simples**\n"
+                            f"5. **Risques et Recommandations** (avec un ton sarcastique mais pertinent) [/INST]"
+                        )
+                        
+                        response = requests.post(API_URL, headers=headers, json={
+                            "inputs": final_prompt, 
+                            "parameters": {
+                                "max_new_tokens": 1500,
+                                "return_full_text": False, # Pour la discrétion
+                                "do_sample": True,         # Pour la créativité
+                                "top_p": 0.9,
+                                "temperature": 0.7,
+                                "repetition_penalty": 1.15 # Pour éviter le bégaiement
+                            }
+                        }).json()
+                        st.session_state.bp_data['final_plan'] = response[0]['generated_text']
+
+                    st.markdown("---")
+                    st.subheader("Proposition de Business Plan par Sir Comptable")
+                    st.markdown(st.session_state.bp_data['final_plan'])
+                    
+                    if st.button("Créer un nouveau plan"):
+                        st.session_state.bp_step = 0
+                        st.session_state.bp_data = {}
+                        st.rerun()
+
+                except Exception as e:
+                    st.error(f"Une erreur est survenue : {e}")
+                    if st.button("Recommencer"):
+                        st.session_state.bp_step = 0
+                        st.session_state.bp_data = {}
+                        st.rerun()
 # --- PAGE RAPPORTS ---
 elif st.session_state.page == "Rapports":
     st.title("Rapports Financiers") # Title should be translated
@@ -633,7 +719,7 @@ elif st.session_state.page == "Abonnement":
     st.markdown("---")
     st.subheader("Forfait Premium") # Subheader should be translated
     st.markdown("- Transactions illimitées\n- Accès complet à Sir Business\n- Rapports avancés") # Text should be translated
-    st.metric("Prix", f"5,000 {st.session_state.currency}/mois") # Label should be translated
+    st.metric("Prix", f"10,000 {st.session_state.currency}/mois") # Label should be translated
     
     if 'payment_token' in st.session_state and st.session_state.payment_token:
         st.info("Vérification de votre paiement en cours... Une fois le paiement effectué sur la page PAYDUNYA, cliquez sur le bouton ci-dessous.")
@@ -744,6 +830,5 @@ elif st.session_state.page == "Paramètres":
     if st.session_state.company_signature:
         st.write(_("settings_current_signature"))
         st.image(st.session_state.company_signature, width=150)
-
 
 
