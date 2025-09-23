@@ -5,3 +5,5 @@ fpdf2
 requests
 Pillow
 openpyxl
+passlib
+bcrypt
