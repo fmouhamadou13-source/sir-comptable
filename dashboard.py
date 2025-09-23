@@ -162,25 +162,6 @@ def get_user(username):
     conn.close()
     return user
 
-def create_admin(username, password):
-    """Crée un utilisateur admin."""
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    try:
-        # Ajoute la colonne 'role' si elle n'existe pas
-        c.execute("ALTER TABLE users ADD COLUMN role TEXT")
-    except sqlite3.OperationalError:
-        pass # La colonne existe déjà
-    try:
-        # Insère le nouvel utilisateur admin
-        c.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'admin')", (username, hash_password(password)))
-        conn.commit()
-        print(f"Utilisateur admin '{username}' créé.")
-    except sqlite3.IntegrityError:
-        print(f"L'utilisateur '{username}' existe déjà.")
-    finally:
-        conn.close()
-
 # --- Initialisation de la mémoire ---
 if "page" not in st.session_state: st.session_state.page = "Tableau de Bord"
 if "currency" not in st.session_state: st.session_state.currency = "FCFA"
@@ -978,7 +959,4 @@ else:
         if st.session_state.company_signature:
             st.write(_("settings_current_signature"))
             st.image(st.session_state.company_signature, width=150)
-        if __name__ == '__main__':
-            create_admin("SIRADMIN", "BARAAISSATA@2025")
-
-
+       
