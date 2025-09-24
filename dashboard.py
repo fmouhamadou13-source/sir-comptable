@@ -1039,19 +1039,3 @@ else:
                         update_user_subscription(username)
                         st.success(f"{username} upgraded to premium.")
                         st.rerun()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
