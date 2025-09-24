@@ -121,7 +121,7 @@ def _(key):
 def safe_encode(text):
     return str(text).encode('latin-1', 'replace').decode('latin-1')
 
-# --- GESTION DE LA BASE DE DONNÉES ---
+# --- DATABASE AND USER MANAGEMENT ---
 def init_db():
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
@@ -139,14 +139,14 @@ def init_db():
 def hash_password(password):
     return bcrypt.hash(password)
 
-def verify_password(plain_password, hashed_password):
-    return bcrypt.verify(plain_password, hashed_password)
+def verify_password(plain_password, password_hash):
+    return bcrypt.verify(plain_password, password_hash)
 
 def add_user(username, password):
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
     try:
-        c.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, hash_password(password)))
+        c.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'user')", (username, hash_password(password)))
         conn.commit()
         return True
     except sqlite3.IntegrityError:
@@ -161,6 +161,22 @@ def get_user(username):
     user = c.fetchone()
     conn.close()
     return user
+
+# --- NEW FUNCTIONS FOR ADMIN PANEL ---
+def get_all_users():
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute("SELECT username, role FROM users")
+    users = c.fetchall()
+    conn.close()
+    return users
+
+def update_user_role(username, new_role):
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute("UPDATE users SET role = ? WHERE username = ?", (new_role, username))
+    conn.commit()
+    conn.close()
 
 # --- Initialisation de la mémoire ---
 if "page" not in st.session_state: st.session_state.page = "Tableau de Bord"
@@ -250,11 +266,10 @@ if not st.session_state.get("logged_in"):
                         st.error(_("username_exists"))
 else:
 
-    # --- Barre latérale ---
+    # --- Sidebar ---
     with st.sidebar:
         st.write(f"{_('welcome_back')}, {st.session_state.username}!")
         if st.button(_("logout_button")):
-            # Efface les données de session lors de la déconnexion
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.rerun()
@@ -309,7 +324,13 @@ else:
         if st.button(_("sidebar_settings"), use_container_width=True):
             st.session_state.page = "Paramètres"
             st.rerun()
-
+        # --- NEW CONDITIONAL ADMIN PANEL BUTTON ---
+        user_data = get_user(st.session_state.username)
+        if user_data and user_data[3] == 'admin':
+            st.markdown("---")
+            if st.button("Admin Panel"):
+                st.session_state.page = "Admin Panel"
+        
     # --- PAGE TABLEAU DE BORD ---
     if st.session_state.page == "Tableau de Bord":
         st.title(_("dashboard_title"))
@@ -959,4 +980,28 @@ else:
         if st.session_state.company_signature:
             st.write(_("settings_current_signature"))
             st.image(st.session_state.company_signature, width=150)
-       
+            
+    # --- ADMIN PANEL PAGE ---
+    elif st.session_state.page == "Admin Panel":
+        st.title("Admin Panel")
+        st.subheader("Manage User Roles")
+
+        all_users = get_all_users()
+    
+        for user in all_users:
+            username, role = user
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                st.write(username)
+            with col2:
+                new_role = st.selectbox(
+                    f"Role for {username}",
+                    ['user', 'admin'],
+                    index=['user', 'admin'].index(role),
+                    key=f"role_{username}"
+                )
+                if new_role != role:
+                    update_user_role(username, new_role)
+                    st.success(f"Role for {username} updated to {new_role}.")
+                    st.rerun()
+
