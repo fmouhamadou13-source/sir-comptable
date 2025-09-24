@@ -130,7 +130,8 @@ def init_db():
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             subscription_status TEXT DEFAULT 'free',
-            role TEXT DEFAULT 'user'
+            role TEXT DEFAULT 'user',
+            expiry_date DATE
         )
     ''')
     conn.commit()
@@ -334,7 +335,30 @@ else:
             st.markdown("---")
             if st.button("Admin Panel"):
                 st.session_state.page = "Admin Panel"
+    # --- GESTION DES PAGES ---
+    if st.session_state.page == "Admin Panel":
+        st.title("Admin Panel")
+        st.subheader("Manage User Roles and Subscriptions")
+
+        all_users = get_all_users()
         
+        for user in all_users:
+            username, role, status, expiry = user
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.write(f"**User:** {username}")
+            with col2:
+                new_role = st.selectbox("Role", ['user', 'admin'], index=['user', 'admin'].index(role), key=f"role_{username}")
+                if new_role != role:
+                    update_user_role(username, new_role)
+                    st.success(f"Role for {username} updated.")
+                    st.rerun()
+            with col3:
+                if status == 'free':
+                    if st.button(f"Upgrade {username}", key=f"upgrade_{username}"):
+                        update_user_subscription(username)
+                        st.success(f"{username} upgraded to premium.")
+                        st.rerun()   
     # --- PAGE TABLEAU DE BORD ---
     if st.session_state.page == "Tableau de Bord":
         st.title(_("dashboard_title"))
@@ -1008,6 +1032,7 @@ else:
                     update_user_role(username, new_role)
                     st.success(f"Role for {username} updated to {new_role}.")
                     st.rerun()
+
 
 
 
