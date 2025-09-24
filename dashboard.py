@@ -167,7 +167,7 @@ def get_user(username):
 def get_all_users():
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
-    c.execute("SELECT username, role FROM users")
+    c.execute("SELECT username, role, subscription_status, expiry_date FROM users")
     users = c.fetchall()
     conn.close()
     return users
@@ -1032,6 +1032,7 @@ else:
                     update_user_role(username, new_role)
                     st.success(f"Role for {username} updated to {new_role}.")
                     st.rerun()
+
 
 
 
