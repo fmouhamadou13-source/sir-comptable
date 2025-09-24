@@ -1017,7 +1017,7 @@ else:
         all_users = get_all_users()
     
         for user in all_users:
-            username, role = user
+            username, role, status, expiry_date = user
             col1, col2 = st.columns([2, 1])
             with col1:
                 st.write(username)
@@ -1032,6 +1032,7 @@ else:
                     update_user_role(username, new_role)
                     st.success(f"Role for {username} updated to {new_role}.")
                     st.rerun()
+
 
 
 
