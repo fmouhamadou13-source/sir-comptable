@@ -123,7 +123,7 @@ def safe_encode(text):
 
 # --- DATABASE AND USER MANAGEMENT ---
 def init_db():
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users_v2.db')
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -144,7 +144,7 @@ def verify_password(plain_password, password_hash):
     return bcrypt.verify(plain_password, password_hash)
 
 def add_user(username, password):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users_v2.db')
     c = conn.cursor()
     try:
         c.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'user')", (username, hash_password(password)))
@@ -156,7 +156,7 @@ def add_user(username, password):
         conn.close()
 
 def get_user(username):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users_v2.db'')
     c = conn.cursor()
     c.execute("SELECT * FROM users WHERE username = ?", (username,))
     user = c.fetchone()
@@ -165,7 +165,7 @@ def get_user(username):
 
 # --- NEW FUNCTIONS FOR ADMIN PANEL ---
 def get_all_users():
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users_v2.db')
     c = conn.cursor()
     c.execute("SELECT username, role, subscription_status, expiry_date FROM users")
     users = c.fetchall()
@@ -173,7 +173,7 @@ def get_all_users():
     return users
 
 def update_user_role(username, new_role):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users_v2.db')
     c = conn.cursor()
     c.execute("UPDATE users SET role = ? WHERE username = ?", (new_role, username))
     conn.commit()
@@ -1032,6 +1032,7 @@ else:
                     update_user_role(username, new_role)
                     st.success(f"Role for {username} updated to {new_role}.")
                     st.rerun()
+
 
 
 
