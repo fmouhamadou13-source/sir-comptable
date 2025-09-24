@@ -1016,26 +1016,28 @@ else:
 
         all_users = get_all_users()
     
-        # On ajoute un compteur pour garantir une clé unique
+        # Créer un dictionnaire pour les changements afin de les appliquer en une seule fois
+        role_changes = {}
+
         for i, user in enumerate(all_users):
             username, role, status, expiry = user
-            col1, col2, col3 = st.columns(3)
+            col1, col2 = st.columns([2, 1])
             with col1:
                 st.write(f"**User:** {username}")
             with col2:
                 new_role = st.selectbox(
-                    f"Role for {username}",
+                    "Role",
                     ['user', 'admin'],
                     index=['user', 'admin'].index(role),
-                    key=f"role_{username}_{i}" # Clé rendue unique avec le compteur 'i'
+                    key=f"role_{username}_{i}"
                 )
                 if new_role != role:
-                    update_user_role(username, new_role)
-                    st.success(f"Role for {username} updated.")
-                    st.rerun()
-            with col3:
-                if status == 'free':
-                    if st.button(f"Upgrade {username}", key=f"upgrade_{username}_{i}"):
-                        update_user_subscription(username)
-                        st.success(f"{username} upgraded to premium.")
-                        st.rerun()
+                    role_changes[username] = new_role
+    
+        # Appliquer les changements en dehors de la boucle principale
+        if st.button("Save Role Changes"):
+            for username, new_role in role_changes.items():
+                update_user_role(username, new_role)
+            st.success("User roles have been updated.")
+            st.rerun()
+
