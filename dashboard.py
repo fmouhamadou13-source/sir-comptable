@@ -327,7 +327,10 @@ else:
             st.rerun()
         # --- NEW CONDITIONAL ADMIN PANEL BUTTON ---
         user_data = get_user(st.session_state.username)
-        if user_data and user_data[3] == 'admin':
+        is_db_admin = user_data and user_data[3] == 'admin'
+        is_hardcoded_admin = st.session_state.username == "SIRADMIN"
+
+        if is_db_admin or is_hardcoded_admin:
             st.markdown("---")
             if st.button("Admin Panel"):
                 st.session_state.page = "Admin Panel"
@@ -1005,5 +1008,6 @@ else:
                     update_user_role(username, new_role)
                     st.success(f"Role for {username} updated to {new_role}.")
                     st.rerun()
+
 
 
