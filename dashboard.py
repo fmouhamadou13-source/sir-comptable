@@ -156,7 +156,7 @@ def add_user(username, password):
         conn.close()
 
 def get_user(username):
-    conn = sqlite3.connect('users_v2.db'')
+    conn = sqlite3.connect('users_v2.db')
     c = conn.cursor()
     c.execute("SELECT * FROM users WHERE username = ?", (username,))
     user = c.fetchone()
@@ -1032,6 +1032,7 @@ else:
                     update_user_role(username, new_role)
                     st.success(f"Role for {username} updated to {new_role}.")
                     st.rerun()
+
 
 
 
