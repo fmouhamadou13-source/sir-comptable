@@ -286,7 +286,7 @@ else:
     
         # --- NOUVELLE LOGIQUE DE NAVIGATION SÉCURISÉE ---
         def check_access(page_name, required_role='user', premium_required=False):
-            is_hardcoded_admin = st.session_state.username == "SIRADMIN"
+            is_hardcoded_admin = st.session_state.username == "SIRBETA"
             user_data = get_user(st.session_state.username)
             is_db_admin = user_data and user_data[3] == 'admin'
             is_premium = user_data and user_data[2] == 'premium'
@@ -1032,6 +1032,7 @@ else:
                     update_user_role(username, new_role)
                     st.success(f"Role for {username} updated to {new_role}.")
                     st.rerun()
+
 
 
 
