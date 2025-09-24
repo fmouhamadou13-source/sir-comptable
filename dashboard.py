@@ -1012,26 +1012,34 @@ else:
     # --- ADMIN PANEL PAGE ---
     elif st.session_state.page == "Admin Panel":
         st.title("Admin Panel")
-        st.subheader("Manage User Roles")
+        st.subheader("Manage User Roles and Subscriptions")
 
         all_users = get_all_users()
     
-        for user in all_users:
-            username, role, status, expiry_date = user
-            col1, col2 = st.columns([2, 1])
+        # On ajoute un compteur pour garantir une clé unique
+        for i, user in enumerate(all_users):
+            username, role, status, expiry = user
+            col1, col2, col3 = st.columns(3)
             with col1:
-                st.write(username)
+                st.write(f"**User:** {username}")
             with col2:
                 new_role = st.selectbox(
                     f"Role for {username}",
                     ['user', 'admin'],
                     index=['user', 'admin'].index(role),
-                    key=f"role_{username}"
+                    key=f"role_{username}_{i}" # Clé rendue unique avec le compteur 'i'
                 )
                 if new_role != role:
                     update_user_role(username, new_role)
-                    st.success(f"Role for {username} updated to {new_role}.")
+                    st.success(f"Role for {username} updated.")
                     st.rerun()
+            with col3:
+                if status == 'free':
+                    if st.button(f"Upgrade {username}", key=f"upgrade_{username}_{i}"):
+                        update_user_subscription(username)
+                        st.success(f"{username} upgraded to premium.")
+                        st.rerun()
+
 
 
 
