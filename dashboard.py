@@ -377,7 +377,7 @@ else:
         if st.session_state.sarcasm_mode and st.session_state.last_total_revenus != total_revenus:
             with st.spinner(_("thinking")):
                 try:
-                    API_URL = "API_URL = st.secrets["HF_API_URL"]"
+                    API_URL = st.secrets["HF_API_URL"]
                     headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
 
                     def query_ai_comment(prompt_text):
@@ -443,7 +443,7 @@ else:
                 st.write(f"**{_('you')} :** {prompt}")
                 with st.spinner(_("thinking")):
                     try:
-                        API_URL = "API_URL = st.secrets["HF_API_URL"]"
+                        API_URL = st.secrets["HF_API_URL"]
                         headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
                     
                         transactions_df = st.session_state.transactions
@@ -807,7 +807,7 @@ else:
                         st.info(f"**Projet :** {st.session_state.bp_data['nom']}\n\n**Description :** {st.session_state.bp_data['description']}")
                     
                         if 'market_questions' not in st.session_state.bp_data:
-                            API_URL = "API_URL = st.secrets["HF_API_URL"]"
+                            API_URL = st.secrets["HF_API_URL"]
                             headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
                         
                             prompt_questions = f"<s>[INST] Tu es un consultant en stratégie. Basé sur cette idée d'entreprise (Nom: {st.session_state.bp_data['nom']}, Description: {st.session_state.bp_data['description']}), pose exactement 3 questions courtes et numérotées pour analyser le marché (clientèle cible, concurrents, avantage unique). [/INST]"
@@ -848,7 +848,7 @@ else:
                 with st.spinner("Sir Comptable compile toutes les informations et rédige le plan final..."):
                     try:
                         if 'final_plan' not in st.session_state.bp_data:
-                            API_URL = "API_URL = st.secrets["HF_API_URL"]"
+                            API_URL = st.secrets["HF_API_URL"]
                             headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
 
                             final_prompt = (
@@ -1040,5 +1040,6 @@ else:
                 update_user_role(username, new_role)
             st.success("User roles have been updated.")
             st.rerun()
+
 
 
