@@ -9,7 +9,7 @@ from fpdf import FPDF
 import requests
 import os
 import sqlite3
-from passlib.hash import bcrypt
+from passlib.hash import argon2 # Changer l'import
 
 # --- DICTIONNAIRE DE TRADUCTION COMPLET ---
 TEXTS = {
@@ -138,10 +138,10 @@ def init_db():
     conn.close()
 
 def hash_password(password):
-    return bcrypt.hash(password)
+    return argon2.hash(password)
 
 def verify_password(plain_password, password_hash):
-    return bcrypt.verify(plain_password, password_hash)
+    return argon2.verify(plain_password, password_hash)
 
 def add_user(username, password):
     conn = sqlite3.connect('users_v6.db')
@@ -1040,6 +1040,7 @@ else:
                 update_user_role(username, new_role)
             st.success("User roles have been updated.")
             st.rerun()
+
 
 
 
