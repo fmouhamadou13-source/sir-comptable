@@ -123,7 +123,7 @@ def safe_encode(text):
 
 # --- DATABASE AND USER MANAGEMENT ---
 def init_db():
-    conn = sqlite3.connect('users_v6.db')
+    conn = sqlite3.connect('users_v7.db')
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -144,7 +144,7 @@ def verify_password(plain_password, password_hash):
     return argon2.verify(plain_password, password_hash)
 
 def add_user(username, password):
-    conn = sqlite3.connect('users_v6.db')
+    conn = sqlite3.connect('users_v7.db')
     c = conn.cursor()
     try:
         c.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'user')", (username, hash_password(password)))
@@ -156,7 +156,7 @@ def add_user(username, password):
         conn.close()
 
 def get_user(username):
-    conn = sqlite3.connect('users_v6.db')
+    conn = sqlite3.connect('users_v7.db')
     c = conn.cursor()
     c.execute("SELECT * FROM users WHERE username = ?", (username,))
     user = c.fetchone()
@@ -165,7 +165,7 @@ def get_user(username):
 
 # --- NEW FUNCTIONS FOR ADMIN PANEL ---
 def get_all_users():
-    conn = sqlite3.connect('users_v6.db')
+    conn = sqlite3.connect('users_v7.db')
     c = conn.cursor()
     c.execute("SELECT username, role, subscription_status, expiry_date FROM users")
     users = c.fetchall()
@@ -173,7 +173,7 @@ def get_all_users():
     return users
 
 def update_user_role(username, new_role):
-    conn = sqlite3.connect('users_v6.db')
+    conn = sqlite3.connect('users_v7.db')
     c = conn.cursor()
     c.execute("UPDATE users SET role = ? WHERE username = ?", (new_role, username))
     conn.commit()
@@ -359,10 +359,18 @@ else:
                         update_user_subscription(username)
                         st.success(f"{username} upgraded to premium.")
                         st.rerun()   
-    # --- PAGE TABLEAU DE BORD ---
+    # --- PAGE TABLEAU DE BORD (VERSION CORRIGÉE POUR LA FACTURATION) ---
     if st.session_state.page == "Tableau de Bord":
         st.title(_("dashboard_title"))
-        st.session_state.sarcasm_mode = st.toggle(_("sarcasm_mode"), value=st.session_state.sarcasm_mode)
+    
+        col_toggle, col_button = st.columns([4, 1])
+        with col_toggle:
+            st.session_state.sarcasm_mode = st.toggle(_("sarcasm_mode"), value=st.session_state.sarcasm_mode)
+    
+        # Le bouton de rafraîchissement est maintenant le seul déclencheur de l'IA
+        with col_button:
+            refresh_comments = st.button("Rafraîchir 💬")
+
         st.markdown("---")
 
         if not st.session_state.transactions.empty:
@@ -372,9 +380,8 @@ else:
         total_depenses = st.session_state.transactions[st.session_state.transactions['Type'] == 'Dépense']['Montant'].sum()
         solde_net = total_revenus - total_depenses
 
-        if 'last_total_revenus' not in st.session_state: st.session_state.last_total_revenus = -1
-
-        if st.session_state.sarcasm_mode and st.session_state.last_total_revenus != total_revenus:
+        # La logique de l'IA n'est exécutée que si l'on clique sur le bouton
+        if refresh_comments and st.session_state.sarcasm_mode:
             with st.spinner(_("thinking")):
                 try:
                     API_URL = st.secrets["HF_API_URL"]
@@ -386,17 +393,17 @@ else:
                         output = response.json()
                         if isinstance(output, list) and 'generated_text' in output[0]:
                             return output[0]['generated_text'].strip()
-                        return ""
-                
+                        return _("error_ai_unexpected")
+
                     lang = st.session_state.language
                     prompt_revenu = f"Tu es Sir Comptable, un majordome sarcastique. En une seule phrase très courte et percutante, commente un revenu total de {total_revenus:,.0f} {st.session_state.currency}. Réponds en {lang}."
                     st.session_state.revenue_comment = query_ai_comment(prompt_revenu)
+                
                     prompt_solde = f"Tu es Sir Comptable, un majordome sarcastique. En une seule phrase très courte et percutante, commente un solde net de {solde_net:,.0f} {st.session_state.currency}. Réponds en {lang}."
                     st.session_state.balance_comment = query_ai_comment(prompt_solde)
-                    st.session_state.last_total_revenus = total_revenus
-                except Exception:
-                    st.session_state.revenue_comment = _("error_ai_contact")
-                    st.session_state.balance_comment = _("error_ai_speechless")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"{_('error_critical')}: {e}")
 
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -418,13 +425,19 @@ else:
             if not st.session_state.transactions.empty:
                 df_copy = st.session_state.transactions.copy()
                 df_copy['Mois'] = df_copy['Date'].dt.to_period('M')
-                monthly_summary = df_copy.groupby('Mois').apply(lambda x: pd.Series({'Revenus': x[x['Type'] == 'Revenu']['Montant'].sum(),'Dépenses': x[x['Type'] == 'Dépense']['Montant'].sum()})).reset_index()
+            
+                monthly_summary = df_copy.groupby(['Mois', 'Type'])['Montant'].sum().unstack(fill_value=0).reset_index()
                 monthly_summary['Mois'] = monthly_summary['Mois'].astype(str)
                 monthly_summary.sort_values(by='Mois', inplace=True)
+            
+                if 'Revenu' not in monthly_summary.columns: monthly_summary['Revenu'] = 0
+                if 'Dépense' not in monthly_summary.columns: monthly_summary['Dépense'] = 0
+
                 fig_line = px.line(monthly_summary, x='Mois', y=[_("revenues"), _("expenses")], title=f'{_("revenues")} vs. {_("expenses")}')
                 st.plotly_chart(fig_line, use_container_width=True)
             else:
                 st.info(_("no_data_for_graph"))
+            
         with col_graphs2:
             st.subheader(_("expense_distribution"))
             df_depenses = st.session_state.transactions[st.session_state.transactions['Type'] == 'Dépense']
@@ -435,7 +448,7 @@ else:
                 st.info(_("no_expense_to_show"))
             
         st.markdown("---")
-        st.subheader(_("Parler à Sir Comptable"))
+        st.subheader(_("talk_to_sir_comptable"))
         prompt = st.text_input("ask_your_question", label_visibility="collapsed", placeholder=_("ask_your_question"))
     
         if st.button(_("send")):
@@ -447,10 +460,7 @@ else:
                         headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
                     
                         transactions_df = st.session_state.transactions
-                    
-                        # --- LIGNE MANQUANTE AJOUTÉE ICI ---
                         depenses_df = transactions_df[transactions_df['Type'] == 'Dépense']
-                    
                         revenus = transactions_df[transactions_df['Type'] == 'Revenu']['Montant'].sum()
                         depenses = depenses_df['Montant'].sum()
                         solde = revenus - depenses
@@ -1040,6 +1050,7 @@ else:
                 update_user_role(username, new_role)
             st.success("User roles have been updated.")
             st.rerun()
+
 
 
 
