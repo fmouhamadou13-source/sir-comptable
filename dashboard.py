@@ -10,7 +10,6 @@ import requests
 import os
 import sqlite3
 from passlib.hash import argon2 # Changer l'import
-API_ENDPOINT_URL = st.secrets["HF_API_URL"]
 
 # --- DICTIONNAIRE DE TRADUCTION COMPLET ---
 TEXTS = {
@@ -378,7 +377,7 @@ else:
         if st.session_state.sarcasm_mode and st.session_state.last_total_revenus != total_revenus:
             with st.spinner(_("thinking")):
                 try:
-                    API_URL = API_ENDPOINT_URL
+                    API_URL = st.secrets["HF_API_URL"]
                     headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
 
                     def query_ai_comment(prompt_text):
@@ -444,7 +443,7 @@ else:
                 st.write(f"**{_('you')} :** {prompt}")
                 with st.spinner(_("thinking")):
                     try:
-                        API_URL = API_ENDPOINT_URL
+                        API_URL = st.secrets["HF_API_URL"]
                         headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
                     
                         transactions_df = st.session_state.transactions
@@ -1041,6 +1040,7 @@ else:
                 update_user_role(username, new_role)
             st.success("User roles have been updated.")
             st.rerun()
+
 
 
 
