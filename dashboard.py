@@ -270,7 +270,7 @@ else:
         is_admin = profile and profile.get('role') == 'admin'
         is_premium = profile and profile.get('subscription_status') == 'premium'
 
-        if st.button(_("sir_business"), width="stretch"):
+        if st.button(_("sidebar_business"), width="stretch"):
             if is_admin or is_premium:
                 st.session_state.page = "Sir Business"
             else:
@@ -1002,6 +1002,7 @@ else:
                     update_user_role(user_id, new_role)
                     st.success(f"Rôle pour {email} mis à jour.")
                     st.rerun()
+
 
 
 
