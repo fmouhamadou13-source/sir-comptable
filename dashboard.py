@@ -1,5 +1,4 @@
 # dashboard.py
-# --- IMPORTS AND SUPABASE CONNECTION ---
 import streamlit as st
 import pandas as pd
 from PIL import Image
@@ -13,11 +12,19 @@ from supabase import create_client, Client
 
 # --- DICTIONNAIRE DE TRADUCTION COMPLET ---
 TEXTS = {
-    # General
-    "send": {"Français": "Envoyer", "Anglais": "Send"},
-    "error_critical": {"Français": "Une erreur critique est survenue", "Anglais": "A critical error occurred"},
-    "app_title": {"Français": "Sir Comptable - Tableau de Bord", "Anglais": "Sir Comptable - Dashboard"},
-    "you": {"Français": "Vous", "Anglais": "You"},
+    # General & Login/Signup
+    "login": {"Français": "Connexion", "Anglais": "Login"},
+    "signup": {"Français": "Inscription", "Anglais": "Sign Up"},
+    "username": {"Français": "Nom d'utilisateur", "Anglais": "Username"},
+    "password": {"Français": "Mot de passe", "Anglais": "Password"},
+    "email": {"Français": "Email", "Anglais": "Email"},
+    "login_button": {"Français": "Se connecter", "Anglais": "Log In"},
+    "signup_button": {"Français": "S'inscrire", "Anglais": "Sign Up"},
+    "logout_button": {"Français": "Déconnexion", "Anglais": "Logout"},
+    "welcome_back": {"Français": "Bon retour", "Anglais": "Welcome back"},
+    "invalid_credentials": {"Français": "Identifiants de connexion invalides.", "Anglais": "Invalid login credentials."},
+    "signup_success": {"Français": "Inscription réussie ! Veuillez vérifier votre email pour confirmer.", "Anglais": "Signup successful! Please check your email to confirm."},
+    "signup_error": {"Français": "Impossible de s'inscrire. L'utilisateur existe peut-être déjà.", "Anglais": "Could not sign up. The user may already exist."},
 
     # Sidebar
     "sidebar_dashboard": {"Français": "Tableau de Bord", "Anglais": "Dashboard"},
@@ -118,9 +125,7 @@ def _(key):
     lang = st.session_state.get("language", "Français")
     return TEXTS.get(key, {}).get(lang, f"[{key}]")
 
-def safe_encode(text):
-    return str(text).encode('latin-1', 'replace').decode('latin-1')
-    
+# --- CONNEXION SUPABASE ET NOUVELLES FONCTIONS UTILISATEURS ---
 @st.cache_resource
 def init_supabase_connection():
     url = st.secrets["supabase"]["url"]
@@ -128,25 +133,13 @@ def init_supabase_connection():
     return create_client(url, key)
 
 supabase: Client = init_supabase_connection()
-# --- NEW USER MANAGEMENT FUNCTIONS ---
+
 def signup(email, password):
     return supabase.auth.sign_up({"email": email, "password": password})
 
 def login(email, password):
     return supabase.auth.sign_in_with_password({"email": email, "password": password})
-def get_user(user_id):
-    """
-    Récupère toutes les infos du profil utilisateur depuis Supabase.
-    Retourne un tuple (id, email, subscription, role)
-    """
-    try:
-        data = supabase.table('profiles').select("id, email, subscription, role").eq("id", user_id).execute()
-        if data.data:
-            u = data.data[0]
-            return (u["id"], u["email"], u.get("subscription", "free"), u.get("role", "user"))
-    except Exception as e:
-        st.error(f"Erreur récupération utilisateur: {e}")
-    return None
+
 def get_user_role(user_id):
     try:
         data = supabase.table('profiles').select('role').eq('id', user_id).execute()
@@ -157,6 +150,7 @@ def get_user_role(user_id):
     return 'user'
 
 # --- Initialisation de la mémoire ---
+if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "page" not in st.session_state: st.session_state.page = "Tableau de Bord"
 if "currency" not in st.session_state: st.session_state.currency = "FCFA"
 if "language" not in st.session_state: st.session_state.language = "Français"
@@ -208,16 +202,16 @@ def add_transaction(transaction_date, trans_type, amount, category, description)
     st.session_state.transactions = pd.concat([st.session_state.transactions, new_data], ignore_index=True)
 
 # --- STRUCTURE PRINCIPALE AVEC MUR DE CONNEXION ---
-
 if not st.session_state.get("logged_in"):
     st.title("Sir Comptable")
-    choice = st.selectbox("Navigation", ["Login", "Sign Up"])
+    choice = st.selectbox(_("choose_section"), [_("login"), _("signup")])
 
-    if choice == "Login":
+    if choice == _("login"):
         with st.form("login_form"):
-            email = st.text_input("Email")
-            password = st.text_input("Password", type="password")
-            submitted = st.form_submit_button("Login")
+            st.subheader(_("login"))
+            email = st.text_input(_("email"))
+            password = st.text_input(_("password"), type="password")
+            submitted = st.form_submit_button(_("login_button"))
             if submitted:
                 response = login(email, password)
                 if response.user:
@@ -225,19 +219,20 @@ if not st.session_state.get("logged_in"):
                     st.session_state.user = response.user
                     st.rerun()
                 else:
-                    st.error("Invalid login credentials.")
+                    st.error(_("invalid_credentials"))
     
-    elif choice == "Sign Up":
+    elif choice == _("signup"):
         with st.form("signup_form"):
-            email = st.text_input("Email")
-            password = st.text_input("Password", type="password")
-            submitted = st.form_submit_button("Sign Up")
+            st.subheader(_("signup"))
+            email = st.text_input(_("email"))
+            password = st.text_input(_("password"), type="password")
+            submitted = st.form_submit_button(_("signup_button"))
             if submitted:
                 response = signup(email, password)
                 if response.user:
-                    st.success("Signup successful! Please check your email to confirm your account.")
+                    st.success(_("signup_success"))
                 else:
-                    st.error("Could not sign up. The user may already exist or the password may be too weak.")
+                    st.error(_("signup_error"))
 else:
 
     # --- LOGIQUE DE LA BARRE LATÉRALE MISE À JOUR ---
@@ -1000,6 +995,7 @@ else:
                     update_user_role(user_id, new_role)
                     st.success(f"Rôle pour {email} mis à jour.")
                     st.rerun()
+
 
 
 
