@@ -273,15 +273,15 @@ else:
                 st.session_state.page = "Abonnement"
             st.rerun()
 
-        if st.button(_("sidebar_dashboard"), width="content"):
+        if st.button(_("sidebar_dashboard"), width="stretch"):
             st.session_state.page = "Tableau de Bord"
             st.rerun()
         
-        if st.button(_("sidebar_accounts"), width="content"):
+        if st.button(_("sidebar_accounts"), width="stretch"):
             st.session_state.page = "Mes Comptes"
             st.rerun()
 
-        if st.button(_("sidebar_transactions"), width="content"):
+        if st.button(_("sidebar_transactions"), width="stretch"):
             st.session_state.page = "Transactions"
             st.rerun()
         
@@ -289,16 +289,16 @@ else:
         if st.button(_("sidebar_business"), width="stretch"):
             check_access("Sir Business", premium_required=True)
         
-        if st.st.button(_("sidebar_reports"), width="content"):
+        if st.st.button(_("sidebar_reports"), width="stretch"):
             check_access("Rapports", premium_required=True) # On protège aussi les rapports
 
         st.markdown("---")
-        if st.button(_("sidebar_subscribe"), width="content"):
+        if st.button(_("sidebar_subscribe"), width="stretch"):
             st.session_state.page = "Abonnement"
             st.rerun()
         
         st.markdown("---")
-        if st.button(_("sidebar_settings"), width="content"):
+        if st.button(_("sidebar_settings"), width="stretch"):
             st.session_state.page = "Paramètres"
             st.rerun()
             
@@ -1021,6 +1021,7 @@ else:
                     update_user_role(user_id, new_role)
                     st.success(f"Rôle pour {email} mis à jour.")
                     st.rerun()
+
 
 
 
