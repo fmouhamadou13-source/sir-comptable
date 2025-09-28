@@ -139,6 +139,7 @@ def signup(email, password):
 
 def login(email, password):
     return supabase.auth.sign_in_with_password({"email": email, "password": password})
+    
 def get_user_profile(user_id):
     """Récupère le profil complet d'un utilisateur."""
     try:
@@ -146,6 +147,7 @@ def get_user_profile(user_id):
         return data.data
     except Exception:
         return None
+        
 def get_user_role(user_id):
     try:
         data = supabase.table('profiles').select('role').eq('id', user_id).execute()
@@ -153,7 +155,6 @@ def get_user_role(user_id):
             return data.data[0]['role']
     except Exception:
         return 'user'
-    return 'user'
 
 # --- Initialisation de la mémoire ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
@@ -1001,6 +1002,7 @@ else:
                     update_user_role(user_id, new_role)
                     st.success(f"Rôle pour {email} mis à jour.")
                     st.rerun()
+
 
 
 
