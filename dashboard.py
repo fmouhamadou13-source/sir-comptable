@@ -281,15 +281,19 @@ else:
         if st.button(_("sidebar_settings"), use_container_width=True):
             st.session_state.page = "Paramètres"
             st.rerun()
+            
         # --- NEW CONDITIONAL ADMIN PANEL BUTTON ---
-        user_data = get_user(st.session_state.username)
-        is_db_admin = user_data and user_data[3] == 'admin'
-        is_hardcoded_admin = st.session_state.username == "fmouhamadou13@gmail.com"
+        # On récupère l'ID de l'utilisateur Supabase connecté
+        user_id = st.session_state.user.id 
+        # On appelle la fonction qui interroge la table 'profiles' de Supabase
+        user_role = get_user_role(user_id) 
 
-        if is_db_admin or is_hardcoded_admin:
+        if user_role == 'admin':
             st.markdown("---")
-            if st.button("Admin Panel"):
+            st.subheader("Administration")
+            if st.button("Panneau Admin"):
                 st.session_state.page = "Admin Panel"
+                st.rerun()
     # --- GESTION DES PAGES ---
     if st.session_state.page == "Admin Panel":
         st.title("Admin Panel")
@@ -998,6 +1002,7 @@ else:
                     update_user_role(user_id, new_role)
                     st.success(f"Rôle pour {email} mis à jour.")
                     st.rerun()
+
 
 
 
