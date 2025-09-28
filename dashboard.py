@@ -134,7 +134,19 @@ def signup(email, password):
 
 def login(email, password):
     return supabase.auth.sign_in_with_password({"email": email, "password": password})
-
+def get_user(user_id):
+    """
+    Récupère toutes les infos du profil utilisateur depuis Supabase.
+    Retourne un tuple (id, email, subscription, role)
+    """
+    try:
+        data = supabase.table('profiles').select("id, email, subscription, role").eq("id", user_id).execute()
+        if data.data:
+            u = data.data[0]
+            return (u["id"], u["email"], u.get("subscription", "free"), u.get("role", "user"))
+    except Exception as e:
+        st.error(f"Erreur récupération utilisateur: {e}")
+    return None
 def get_user_role(user_id):
     try:
         data = supabase.table('profiles').select('role').eq('id', user_id).execute()
@@ -240,59 +252,67 @@ else:
         st.markdown("---")
         
         # --- NOUVELLE LOGIQUE DE NAVIGATION SÉCURISÉE ---
-        def check_access(page_name, required_role='user', premium_required=False):
-            user_data = get_user(st.session_state.username)
-            is_db_admin = user_data and user_data[3] == 'admin'
-            is_premium = user_data and user_data[2] == 'premium'
+        def is_premium_user(user_id):
+            try:
+                data = supabase.table("profiles").select("plan").eq("id", user_id).execute()
+                if data.data and data.data[0]["plan"] == "premium":
+                    return True
+            except Exception:
+                return False
+            return False
 
-            if not premium_required or is_premium or is_db_admin:
+        def check_access(page_name, required_role='user', premium_required=False):
+            user_id = st.session_state.user.id
+            user_role = get_user_role(user_id)   # admin / user
+            is_premium = is_premium_user(user_id)
+
+            if (not premium_required) or (is_premium) or (user_role == "admin"):
                 st.session_state.page = page_name
             else:
                 st.warning("Cette section est réservée aux abonnés Premium.")
                 st.session_state.page = "Abonnement"
             st.rerun()
 
-        if st.button(_("sidebar_dashboard"), use_container_width=True):
+        if st.button(_("sidebar_dashboard"), width="content"):
             st.session_state.page = "Tableau de Bord"
             st.rerun()
         
-        if st.button(_("sidebar_accounts"), use_container_width=True):
+        if st.button(_("sidebar_accounts"), width="content"):
             st.session_state.page = "Mes Comptes"
             st.rerun()
 
-        if st.button(_("sidebar_transactions"), use_container_width=True):
+        if st.button(_("sidebar_transactions"), width="content"):
             st.session_state.page = "Transactions"
             st.rerun()
         
         # Le bouton "Sir Business" est maintenant protégé
-        if st.button(_("sidebar_business"), use_container_width=True):
+        if st.button(_("sidebar_business"), width="stretch"):
             check_access("Sir Business", premium_required=True)
         
-        if st.button(_("sidebar_reports"), use_container_width=True):
+        if st.st.button(_("sidebar_reports"), width="content"):
             check_access("Rapports", premium_required=True) # On protège aussi les rapports
 
         st.markdown("---")
-        if st.button(_("sidebar_subscribe"), use_container_width=True):
+        if st.button(_("sidebar_subscribe"), width="content"):
             st.session_state.page = "Abonnement"
             st.rerun()
         
         st.markdown("---")
-        if st.button(_("sidebar_settings"), use_container_width=True):
+        if st.button(_("sidebar_settings"), width="content"):
             st.session_state.page = "Paramètres"
             st.rerun()
             
         # --- NEW CONDITIONAL ADMIN PANEL BUTTON ---
-        # On récupère l'ID de l'utilisateur Supabase connecté
         user_id = st.session_state.user.id 
-        # On appelle la fonction qui interroge la table 'profiles' de Supabase
         user_role = get_user_role(user_id) 
 
         if user_role == 'admin':
             st.markdown("---")
             st.subheader("Administration")
-            if st.button("Panneau Admin"):
+            if st.button("Panneau Admin", width="stretch"):
                 st.session_state.page = "Admin Panel"
                 st.rerun()
+
     # --- GESTION DES PAGES ---
     if st.session_state.page == "Admin Panel":
         st.title("Admin Panel")
@@ -1001,6 +1021,7 @@ else:
                     update_user_role(user_id, new_role)
                     st.success(f"Rôle pour {email} mis à jour.")
                     st.rerun()
+
 
 
 
