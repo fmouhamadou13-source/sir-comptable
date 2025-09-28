@@ -134,15 +134,15 @@ def signup(email, password):
 
 def login(email, password):
     return supabase.auth.sign_in_with_password({"email": email, "password": password})
-
 def get_user_role(user_id):
+    """Récupère le rôle d'un utilisateur depuis la table profiles."""
     try:
         data = supabase.table('profiles').select('role').eq('id', user_id).execute()
         if data.data:
             return data.data[0]['role']
-    except Exception:
-        return 'user'
-    return 'user'
+    except Exception as e:
+        st.error(f"Erreur lors de la récupération du rôle : {e}")
+    return 'user' # Retourne 'user' par défaut en cas d'erreur
 
 # --- Initialisation de la mémoire ---
 if "page" not in st.session_state: st.session_state.page = "Tableau de Bord"
@@ -230,23 +230,26 @@ if not st.session_state.get("logged_in"):
                     st.error("Could not sign up. The user may already exist or the password may be too weak.")
 else:
 
-    # --- Sidebar ---
+    # --- LOGIQUE DE LA BARRE LATÉRALE MISE À JOUR ---
     with st.sidebar:
-        st.write(f"{_('welcome_back')}, {st.session_state.username}!")
-        if st.button(_("logout_button")):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
+        st.write(f"Connecté en tant que : {st.session_state.user.email}")
+        if st.button("Déconnexion"):
+            supabase.auth.sign_out()
+            st.session_state.logged_in = False
+            st.session_state.user = None
             st.rerun()
 
         st.markdown("---")
-        try:
-            logo_image = Image.open("logo sir comptable.jpg")
-            st.image(logo_image, width=180)
-        except FileNotFoundError:
-            st.error(_("logo_file_missing"))
-        st.title("Sir Comptable")
-        st.markdown("---")
-    
+        # --- VÉRIFICATION DU RÔLE ADMIN ---
+        user_id = st.session_state.user.id
+        user_role = get_user_role(user_id)
+
+        if user_role == 'admin':
+            st.markdown("---")
+            st.subheader("Administration")
+            if st.button("Panneau Admin"):
+                st.session_state.page = "Admin Panel"
+                st.rerun()
         # --- NOUVELLE LOGIQUE DE NAVIGATION SÉCURISÉE ---
         def check_access(page_name, required_role='user', premium_required=False):
             is_hardcoded_admin = st.session_state.username == "SIRBETA"
@@ -982,37 +985,31 @@ else:
             st.write(_("settings_current_signature"))
             st.image(st.session_state.company_signature, width=150)
             
-    # --- ADMIN PANEL PAGE ---
+    # --- PAGE ADMIN PANEL ---
     elif st.session_state.page == "Admin Panel":
-        st.title("Admin Panel")
-        st.subheader("Manage User Roles and Subscriptions")
+        st.title("Panneau d'Administration")
+        st.subheader("Gérer les Rôles des Utilisateurs")
 
-        all_users = get_all_users()
-    
-        # Créer un dictionnaire pour les changements afin de les appliquer en une seule fois
-        role_changes = {}
+        all_users = get_all_users() # Assurez-vous que cette fonction existe
 
-        for i, user in enumerate(all_users):
-            username, role, status, expiry = user
+        for user_data in all_users:
+            user_id, email, role = user_data # Adaptez selon la structure de votre table
             col1, col2 = st.columns([2, 1])
             with col1:
-                st.write(f"**User:** {username}")
+                st.write(email)
             with col2:
                 new_role = st.selectbox(
-                    "Role",
+                    "Rôle",
                     ['user', 'admin'],
                     index=['user', 'admin'].index(role),
-                    key=f"role_{username}_{i}"
+                    key=f"role_{email}"
                 )
                 if new_role != role:
-                    role_changes[username] = new_role
-    
-        # Appliquer les changements en dehors de la boucle principale
-        if st.button("Save Role Changes"):
-            for username, new_role in role_changes.items():
-                update_user_role(username, new_role)
-            st.success("User roles have been updated.")
-            st.rerun()
+                    # Assurez-vous d'avoir une fonction update_user_role(user_id, new_role)
+                    update_user_role(user_id, new_role)
+                    st.success(f"Rôle pour {email} mis à jour.")
+                    st.rerun()
+
 
 
 
