@@ -6,3 +6,4 @@ requests
 Pillow
 openpyxl
 passlib[argon2]>=1.7.4
+supabase
