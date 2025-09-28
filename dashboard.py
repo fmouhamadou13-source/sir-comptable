@@ -238,16 +238,7 @@ else:
             st.rerun()
 
         st.markdown("---")
-        # --- VÉRIFICATION DU RÔLE ADMIN ---
-        user_id = st.session_state.user.id
-        user_role = get_user_role(user_id)
-
-        if user_role == 'admin':
-            st.markdown("---")
-            st.subheader("Administration")
-            if st.button("Panneau Admin"):
-                st.session_state.page = "Admin Panel"
-                st.rerun()
+        
         # --- NOUVELLE LOGIQUE DE NAVIGATION SÉCURISÉE ---
         def check_access(page_name, required_role='user', premium_required=False):
             is_hardcoded_admin = st.session_state.username == "SIRBETA"
@@ -1007,6 +998,7 @@ else:
                     update_user_role(user_id, new_role)
                     st.success(f"Rôle pour {email} mis à jour.")
                     st.rerun()
+
 
 
 
