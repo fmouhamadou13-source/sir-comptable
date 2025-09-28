@@ -194,8 +194,6 @@ def convert_df_to_excel(df):
 def add_transaction(transaction_date, trans_type, amount, category, description):
     new_data = pd.DataFrame([{"Date": pd.to_datetime(transaction_date), "Type": trans_type, "Montant": amount, "Catégorie": category, "Description": description}])
     st.session_state.transactions = pd.concat([st.session_state.transactions, new_data], ignore_index=True)
-# --- Initialisation de la BDD ---
-init_db()
 
 # --- STRUCTURE PRINCIPALE AVEC MUR DE CONNEXION ---
 
@@ -1009,6 +1007,7 @@ else:
                     update_user_role(user_id, new_role)
                     st.success(f"Rôle pour {email} mis à jour.")
                     st.rerun()
+
 
 
 
