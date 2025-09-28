@@ -134,15 +134,15 @@ def signup(email, password):
 
 def login(email, password):
     return supabase.auth.sign_in_with_password({"email": email, "password": password})
+
 def get_user_role(user_id):
-    """Récupère le rôle d'un utilisateur depuis la table profiles."""
     try:
         data = supabase.table('profiles').select('role').eq('id', user_id).execute()
         if data.data:
             return data.data[0]['role']
-    except Exception as e:
-        st.error(f"Erreur lors de la récupération du rôle : {e}")
-    return 'user' # Retourne 'user' par défaut en cas d'erreur
+    except Exception:
+        return 'user'
+    return 'user'
 
 # --- Initialisation de la mémoire ---
 if "page" not in st.session_state: st.session_state.page = "Tableau de Bord"
@@ -1007,6 +1007,7 @@ else:
                     update_user_role(user_id, new_role)
                     st.success(f"Rôle pour {email} mis à jour.")
                     st.rerun()
+
 
 
 
