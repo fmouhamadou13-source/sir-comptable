@@ -250,68 +250,47 @@ else:
             st.rerun()
 
         st.markdown("---")
-        
-        # --- NOUVELLE LOGIQUE DE NAVIGATION SÉCURISÉE ---
-        def is_premium_user(user_id):
-            try:
-                data = supabase.table("profiles").select("plan").eq("id", user_id).execute()
-                if data.data and data.data[0]["plan"] == "premium":
-                    return True
-            except Exception:
-                return False
-            return False
+        try:
+            logo_image = Image.open("logo sir comptable.jpg")
+            st.image(logo_image, width=180)
+        except FileNotFoundError:
+            st.error(_("logo_file_missing"))
+        st.title("Sir Comptable")
+        st.markdown("---")
+        # --- Logique de navigation principale ---
+        if st.button(_("sidebar_dashboard"), width="stretch"): st.session_state.page = "Tableau de Bord"
+        if st.button(_("sidebar_accounts"), width="stretch"): st.session_state.page = "Mes Comptes"
+        if st.button(_("sidebar_transactions"), width="stretch"): st.session_state.page = "Transactions"
+    
+        # --- Vérification d'accès centralisée ---
+        user_id = st.session_state.user.id
+        profile = get_user_profile(user_id) # Assurez-vous d'avoir une fonction get_user_profile
+        is_admin = profile and profile.get('role') == 'admin'
+        is_premium = profile and profile.get('subscription_status') == 'premium'
 
-        def check_access(page_name, required_role='user', premium_required=False):
-            user_id = st.session_state.user.id
-            user_role = get_user_role(user_id)   # admin / user
-            is_premium = is_premium_user(user_id)
-
-            if (not premium_required) or (is_premium) or (user_role == "admin"):
-                st.session_state.page = page_name
+        if st.button(_("sidebar_business"), width="stretch"):
+            if is_admin or is_premium:
+                st.session_state.page = "Sir Business"
             else:
                 st.warning("Cette section est réservée aux abonnés Premium.")
                 st.session_state.page = "Abonnement"
-            st.rerun()
-
-        if st.button(_("sidebar_dashboard"), width="stretch"):
-            st.session_state.page = "Tableau de Bord"
-            st.rerun()
-        
-        if st.button(_("sidebar_accounts"), width="stretch"):
-            st.session_state.page = "Mes Comptes"
-            st.rerun()
-
-        if st.button(_("sidebar_transactions"), width="stretch"):
-            st.session_state.page = "Transactions"
-            st.rerun()
-        
-        # Le bouton "Sir Business" est maintenant protégé
-        if st.button(_("sidebar_business"), width="stretch"):
-            check_access("Sir Business", premium_required=True)
         
         if st.button(_("sidebar_reports"), width="stretch"):
-            check_access("Rapports", premium_required=True) # On protège aussi les rapports
-
+            if is_admin or is_premium:
+                st.session_state.page = "Rapports"
+            else:
+                st.warning("Cette section est réservée aux abonnés Premium.")
+                st.session_state.page = "Abonnement"
         st.markdown("---")
-        if st.button(_("sidebar_subscribe"), width="stretch"):
-            st.session_state.page = "Abonnement"
-            st.rerun()
-        
-        st.markdown("---")
-        if st.button(_("sidebar_settings"), width="stretch"):
-            st.session_state.page = "Paramètres"
-            st.rerun()
-            
-        # --- NEW CONDITIONAL ADMIN PANEL BUTTON ---
-        user_id = st.session_state.user.id 
-        user_role = get_user_role(user_id) 
+        if st.button(_("sidebar_subscribe"), width="stretch"): st.session_state.page = "Abonnement"
+        if st.button(_("sidebar_settings"), width="stretch"): st.session_state.page = "Paramètres"
 
-        if user_role == 'admin':
+        # Affichage du panneau admin
+        if is_admin:
             st.markdown("---")
             st.subheader("Administration")
-            if st.button("Panneau Admin", width="stretch"):
+            if st.button("Panneau Admin"):
                 st.session_state.page = "Admin Panel"
-                st.rerun()
 
     # --- GESTION DES PAGES ---
     if st.session_state.page == "Admin Panel":
@@ -1021,6 +1000,7 @@ else:
                     update_user_role(user_id, new_role)
                     st.success(f"Rôle pour {email} mis à jour.")
                     st.rerun()
+
 
 
 
