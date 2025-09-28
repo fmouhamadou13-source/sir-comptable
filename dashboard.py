@@ -139,7 +139,13 @@ def signup(email, password):
 
 def login(email, password):
     return supabase.auth.sign_in_with_password({"email": email, "password": password})
-
+def get_user_profile(user_id):
+    """Récupère le profil complet d'un utilisateur."""
+    try:
+        data = supabase.table('profiles').select('*').eq('id', user_id).single().execute()
+        return data.data
+    except Exception:
+        return None
 def get_user_role(user_id):
     try:
         data = supabase.table('profiles').select('role').eq('id', user_id).execute()
@@ -995,6 +1001,7 @@ else:
                     update_user_role(user_id, new_role)
                     st.success(f"Rôle pour {email} mis à jour.")
                     st.rerun()
+
 
 
 
