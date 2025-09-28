@@ -289,7 +289,7 @@ else:
         if st.button(_("sidebar_business"), width="stretch"):
             check_access("Sir Business", premium_required=True)
         
-        if st.st.button(_("sidebar_reports"), width="stretch"):
+        if st.button(_("sidebar_reports"), width="stretch"):
             check_access("Rapports", premium_required=True) # On protège aussi les rapports
 
         st.markdown("---")
@@ -1021,6 +1021,7 @@ else:
                     update_user_role(user_id, new_role)
                     st.success(f"Rôle pour {email} mis à jour.")
                     st.rerun()
+
 
 
 
