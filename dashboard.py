@@ -1,4 +1,5 @@
 # dashboard.py
+# --- IMPORTS AND SUPABASE CONNECTION ---
 import streamlit as st
 import pandas as pd
 from PIL import Image
@@ -8,8 +9,7 @@ import plotly.express as px
 from fpdf import FPDF
 import requests
 import os
-import sqlite3
-from passlib.hash import argon2 # Changer l'import
+from supabase import create_client, Client
 
 # --- DICTIONNAIRE DE TRADUCTION COMPLET ---
 TEXTS = {
@@ -120,64 +120,29 @@ def _(key):
 
 def safe_encode(text):
     return str(text).encode('latin-1', 'replace').decode('latin-1')
+    
+@st.cache_resource
+def init_supabase_connection():
+    url = st.secrets["supabase"]["url"]
+    key = st.secrets["supabase"]["key"]
+    return create_client(url, key)
 
-# --- DATABASE AND USER MANAGEMENT ---
-def init_db():
-    conn = sqlite3.connect('users_v7.db')
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            subscription_status TEXT DEFAULT 'free',
-            role TEXT DEFAULT 'user',
-            expiry_date DATE
-        )
-    ''')
-    conn.commit()
-    conn.close()
+supabase: Client = init_supabase_connection()
+# --- NEW USER MANAGEMENT FUNCTIONS ---
+def signup(email, password):
+    return supabase.auth.sign_up({"email": email, "password": password})
 
-def hash_password(password):
-    return argon2.hash(password)
+def login(email, password):
+    return supabase.auth.sign_in_with_password({"email": email, "password": password})
 
-def verify_password(plain_password, password_hash):
-    return argon2.verify(plain_password, password_hash)
-
-def add_user(username, password):
-    conn = sqlite3.connect('users_v7.db')
-    c = conn.cursor()
+def get_user_role(user_id):
     try:
-        c.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'user')", (username, hash_password(password)))
-        conn.commit()
-        return True
-    except sqlite3.IntegrityError:
-        return False
-    finally:
-        conn.close()
-
-def get_user(username):
-    conn = sqlite3.connect('users_v7.db')
-    c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE username = ?", (username,))
-    user = c.fetchone()
-    conn.close()
-    return user
-
-# --- NEW FUNCTIONS FOR ADMIN PANEL ---
-def get_all_users():
-    conn = sqlite3.connect('users_v7.db')
-    c = conn.cursor()
-    c.execute("SELECT username, role, subscription_status, expiry_date FROM users")
-    users = c.fetchall()
-    conn.close()
-    return users
-
-def update_user_role(username, new_role):
-    conn = sqlite3.connect('users_v7.db')
-    c = conn.cursor()
-    c.execute("UPDATE users SET role = ? WHERE username = ?", (new_role, username))
-    conn.commit()
-    conn.close()
+        data = supabase.table('profiles').select('role').eq('id', user_id).execute()
+        if data.data:
+            return data.data[0]['role']
+    except Exception:
+        return 'user'
+    return 'user'
 
 # --- Initialisation de la mémoire ---
 if "page" not in st.session_state: st.session_state.page = "Tableau de Bord"
@@ -236,35 +201,33 @@ init_db()
 
 if not st.session_state.get("logged_in"):
     st.title("Sir Comptable")
-    choice = st.selectbox(_("choose_section"), [_("login"), _("signup")])
-    if choice == _("login"):
+    choice = st.selectbox("Navigation", ["Login", "Sign Up"])
+
+    if choice == "Login":
         with st.form("login_form"):
-            st.subheader(_("login"))
-            username = st.text_input(_("username"))
-            password = st.text_input(_("password"), type="password")
-            submitted = st.form_submit_button(_("login_button"))
+            email = st.text_input("Email")
+            password = st.text_input("Password", type="password")
+            submitted = st.form_submit_button("Login")
             if submitted:
-                user = get_user(username)
-                if user and verify_password(password, user[1]):
+                response = login(email, password)
+                if response.user:
                     st.session_state.logged_in = True
-                    st.session_state.username = username
+                    st.session_state.user = response.user
                     st.rerun()
                 else:
-                    st.error(_("invalid_credentials"))
-    elif choice == _("signup"):
+                    st.error("Invalid login credentials.")
+    
+    elif choice == "Sign Up":
         with st.form("signup_form"):
-            st.subheader(_("signup"))
-            new_username = st.text_input(_("username"))
-            new_password = st.text_input(_("password"), type="password")
-            submitted = st.form_submit_button(_("signup_button"))
+            email = st.text_input("Email")
+            password = st.text_input("Password", type="password")
+            submitted = st.form_submit_button("Sign Up")
             if submitted:
-                if len(new_password) < 6:
-                    st.error(_("password_too_short"))
+                response = signup(email, password)
+                if response.user:
+                    st.success("Signup successful! Please check your email to confirm your account.")
                 else:
-                    if add_user(new_username, new_password):
-                        st.success(_("signup_success"))
-                    else:
-                        st.error(_("username_exists"))
+                    st.error("Could not sign up. The user may already exist or the password may be too weak.")
 else:
 
     # --- Sidebar ---
@@ -1050,6 +1013,7 @@ else:
                 update_user_role(username, new_role)
             st.success("User roles have been updated.")
             st.rerun()
+
 
 
 
