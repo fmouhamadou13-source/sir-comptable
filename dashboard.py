@@ -155,6 +155,14 @@ def get_user_role(user_id):
             return data.data[0]['role']
     except Exception:
         return 'user'
+def get_all_users():
+    """Récupère tous les utilisateurs depuis la table profiles."""
+    try:
+        data = supabase.table('profiles').select('*').execute()
+        return data.data
+    except Exception as e:
+        st.error(f"Erreur lors de la récupération des utilisateurs : {e}")
+        return []
 
 # --- Initialisation de la mémoire ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
@@ -1001,6 +1009,7 @@ else:
                     update_user_role(user_id, new_role)
                     st.success(f"Rôle pour {email} mis à jour.")
                     st.rerun()
+
 
 
 
