@@ -299,7 +299,8 @@ else:
         if is_admin:
             st.markdown("---")
             st.subheader("Administration")
-        if st.button(_("Panneau Admin"), width="stretch") :st.session_state.page = "Admin Panel"
+        if st.button("Panneau Admin"):
+            st.session_state.page = "Admin Panel"
 
     # --- GESTION DES PAGES ---
     if st.session_state.page == "Admin Panel":
@@ -1009,6 +1010,7 @@ else:
                     update_user_role(user_id, new_role)
                     st.success(f"Rôle pour {email} mis à jour.")
                     st.rerun()
+
 
 
 
