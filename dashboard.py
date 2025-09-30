@@ -163,7 +163,14 @@ def get_all_users():
     except Exception as e:
         st.error(f"Erreur lors de la récupération des utilisateurs : {e}")
         return []
-
+def update_user_role(user_id, new_role):
+    """Met à jour le rôle d'un utilisateur dans la table profiles."""
+    try:
+        supabase.table('profiles').update({'role': new_role}).eq('id', user_id).execute()
+        return True
+    except Exception:
+        return False
+        
 # --- Initialisation de la mémoire ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "page" not in st.session_state: st.session_state.page = "Tableau de Bord"
@@ -1048,6 +1055,7 @@ else:
                             update_user_subscription(username)
                             st.success(f"{username} est passé en Premium.")
                             st.rerun()
+
 
 
 
