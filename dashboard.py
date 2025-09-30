@@ -1011,71 +1011,64 @@ else:
             
     # --- PAGE ADMIN PANEL (CORRIGÉE POUR ÉVITER LA BOUCLE) ---
     elif st.session_state.page == "Admin Panel":
-        st.title("Admin Panel")
-        st.subheader("Manage User Roles and Subscriptions")
+    st.title("Admin Panel")
+    st.subheader("Manage User Roles and Subscriptions")
 
-        all_users = get_all_users()
+    # Charger les utilisateurs une seule fois par session
+    if "all_users" not in st.session_state:
+        st.session_state.all_users = get_all_users()
 
-        if not all_users:
-            st.warning("Aucun utilisateur trouvé dans Supabase.")
-        else:
-            # Forcer un tri stable (par email ou username)
-            all_users = sorted(all_users, key=lambda u: u.get("email", ""))
+    all_users = st.session_state.all_users
 
-            # Créer un dict pour stocker les modifications
-            changes_to_apply = {"roles": {}, "subscriptions": []}
+    if not all_users:
+        st.warning("Aucun utilisateur trouvé dans Supabase.")
+    else:
+        # Forcer un tri stable (par email)
+        all_users = sorted(all_users, key=lambda u: u.get("email", ""))
 
-            st.markdown("---")
+        # Créer un dict pour stocker les changements
+        changes_to_apply = {"roles": {}, "subscriptions": []}
 
-            for i, user_data in enumerate(all_users):
-                user_id = user_data.get("id")
-                username = user_data.get("email", f"user_{i}")  # fallback
-                role = user_data.get("role", "user")
-                status = user_data.get("subscription_status", "free")
+        st.markdown("---")
 
-                # Sécurité : corriger les rôles ou statuts invalides
-                if role not in ["user", "admin"]:
-                    role = "user"
-                if status not in ["free", "premium"]:
-                    status = "free"
+        for i, user_data in enumerate(all_users):
+            user_id = str(user_data.get("id"))  # forcer en string pour la clé
+            username = user_data.get("email", f"user_{i}")
+            role = user_data.get("role", "user")
+            status = user_data.get("subscription_status", "free")
 
-                col1, col2, col3 = st.columns([2, 2, 1])
+            col1, col2, col3 = st.columns([2, 2, 1])
 
-                with col1:
-                    st.write(f"**User:** {username}")
+            with col1:
+                st.write(f"**User:** {username}")
 
-                with col2:
-                    new_role = st.selectbox(
-                        "Role",
-                        ["user", "admin"],
-                        index=["user", "admin"].index(role),
-                        key=f"role_{user_id}"
-                    )
-                    if new_role != role:
-                        changes_to_apply["roles"][user_id] = new_role
+            with col2:
+                new_role = st.selectbox(
+                    "Role",
+                    ["user", "admin"],
+                    index=["user", "admin"].index(role),
+                    key=f"role_{user_id}"
+                )
+                if new_role != role:
+                    changes_to_apply["roles"][user_id] = new_role
 
-                with col3:
-                    if status == "free":
-                        if st.button("Upgrade to Premium", key=f"upgrade_{user_id}"):
-                            changes_to_apply["subscriptions"].append(user_id)
+            with col3:
+                if status == "free":
+                    if st.button("Upgrade to Premium", key=f"upgrade_{user_id}"):
+                        changes_to_apply["subscriptions"].append(user_id)
 
-            st.markdown("---")
+        st.markdown("---")
 
-            if st.button("Save All Changes"):
-                with st.spinner("Applying changes..."):
-                    # Appliquer les rôles
-                    for uid, new_role in changes_to_apply["roles"].items():
-                        update_user_role(uid, new_role)
+        if st.button("Save All Changes"):
+            with st.spinner("Applying changes..."):
+                for uid, new_role in changes_to_apply["roles"].items():
+                    update_user_role(uid, new_role)
 
-                    # Appliquer les abonnements
-                    for uid in changes_to_apply["subscriptions"]:
-                        supabase.table("profiles").update(
-                            {"subscription_status": "premium"}
-                        ).eq("id", uid).execute()
+                for uid in changes_to_apply["subscriptions"]:
+                    supabase.table("profiles").update(
+                        {"subscription_status": "premium"}
+                    ).eq("id", uid).execute()
 
-                st.success("✅ Changes saved successfully.")
-                st.experimental_set_query_params(refresh="1")  # au lieu de st.rerun()
-
-
-
-
+            # 🔑 Recharger les utilisateurs après mise à jour
+            st.session_state.all_users = get_all_users()
+            st.success("✅ Changes saved successfully.")
