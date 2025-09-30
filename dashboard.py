@@ -1011,78 +1011,61 @@ else:
             
     # --- PAGE ADMIN PANEL (CORRIGÉE POUR ÉVITER LA BOUCLE) ---
     elif st.session_state.page == "Admin Panel":
-        st.title("Panneau d'Administration")
-        st.subheader("Gérer les Rôles et Abonnements des Utilisateurs")
+        st.title("Admin Panel")
+        st.subheader("Manage User Roles and Subscriptions")
 
         all_users = get_all_users()
     
-        if not all_users:
-            st.warning("Aucun utilisateur trouvé.")
-        else:
-            # On utilise un dictionnaire pour préparer les changements
-            changes = {"roles": {}, "subscriptions": []}
+        # Create a dictionary to hold the changes to be applied
+        changes_to_apply = {
+            "roles": {},
+            "subscriptions": []
+        }
+
+        st.markdown("---")
+    
+        # Display the users and their settings
+        for i, user_data in enumerate(all_users):
+            if not isinstance(user_data, dict): continue
+
+            username = user_data.get('username', f'user_{i}')
+            role = user_data.get('role', 'user')
+            status = user_data.get('subscription_status', 'free')
         
-            for i, user_data in enumerate(all_users):
-                if not isinstance(user_data, dict): continue
+            # Security check for invalid roles
+            if role not in ['user', 'admin']:
+                role = 'user'
 
-                username = user_data.get('username', f'user_{i}')
-                role = user_data.get('role', 'user')
-                status = user_data.get('subscription_status', 'free')
+            col1, col2, col3 = st.columns([2, 2, 1])
+        
+            with col1:
+                st.write(f"**User:** {username}")
+        
+            with col2:
+                new_role = st.selectbox(
+                    "Role",
+                    ['user', 'admin'],
+                    index=['user', 'admin'].index(role),
+                    key=f"role_{username}_{i}"
+                   )
+                   if new_role != role:
+                       changes_to_apply["roles"][username] = new_role
+        
+            with col3:
+                if status == 'free':
+                    if st.button(f"Upgrade to Premium", key=f"upgrade_{username}_{i}"):
+                        changes_to_apply["subscriptions"].append(username)
+
+        st.markdown("---")
+
+        # A single button to apply all changes at once
+        if st.button("Save All Changes"):
+            with st.spinner("Applying changes..."):
+                for username, new_role in changes_to_apply["roles"].items():
+                    update_user_role(username, new_role)
             
-                if role not in ['user', 'admin']: role = 'user'
-
-                col1, col2, col3 = st.columns([2, 2, 1])
-                with col1:
-                    st.write(f"**Utilisateur :** {username}")
-                    st.caption(f"Statut : {status}")
-                with col2:
-                    new_role = st.selectbox("Rôle", ['user', 'admin'], index=['user', 'admin'].index(role), key=f"role_{username}_{i}")
-                    if new_role != role:
-                        changes["roles"][username] = new_role
-                with col3:
-                    if status == 'free':
-                        if st.button(f"Passer en Premium", key=f"upgrade_{username}_{i}"):
-                            changes["subscriptions"].append(username)
-
-            st.markdown("---")
-            if st.button("Enregistrer les modifications"):
-                with st.spinner("Application des changements..."):
-                    for username, new_role in changes["roles"].items():
-                        update_user_role(username, new_role)
-                    for username in changes["subscriptions"]:
-                        update_user_subscription(username)
-                st.success("Modifications enregistrées.")
-                st.rerun()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                for username in changes_to_apply["subscriptions"]:
+                    update_user_subscription(username)
+            
+            st.success("Changes have been saved successfully.")
+            st.rerun()
