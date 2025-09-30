@@ -1068,5 +1068,5 @@ else:
                     update_user_subscription(username)
             
             st.success("Changes have been saved successfully.")
-            st.rerun()
+
 
