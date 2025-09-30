@@ -1009,7 +1009,7 @@ else:
             st.write(_("settings_current_signature"))
             st.image(st.session_state.company_signature, width=150)
             
-    # --- PAGE ADMIN PANEL (CORRIGÉE POUR GÉRER LES RÔLES INVALIDE) ---
+    # --- PAGE ADMIN PANEL (CORRIGÉE POUR ÉVITER LA BOUCLE) ---
     elif st.session_state.page == "Admin Panel":
         st.title("Panneau d'Administration")
         st.subheader("Gérer les Rôles et Abonnements des Utilisateurs")
@@ -1019,42 +1019,40 @@ else:
         if not all_users:
             st.warning("Aucun utilisateur trouvé.")
         else:
+            # On utilise un dictionnaire pour préparer les changements
+            changes = {"roles": {}, "subscriptions": []}
+        
             for i, user_data in enumerate(all_users):
-                # On s'assure que user_data est un dictionnaire
                 if not isinstance(user_data, dict): continue
 
-                username = user_data.get('username', 'N/A')
-                role = user_data.get('role', 'user') # On met 'user' par défaut si le rôle est manquant
+                username = user_data.get('username', f'user_{i}')
+                role = user_data.get('role', 'user')
                 status = user_data.get('subscription_status', 'free')
-                expiry = user_data.get('expiry_date')
             
-                # Correction de sécurité : si le rôle n'est pas valide, on le force à 'user'
-                if role not in ['user', 'admin']:
-                    role = 'user'
+                if role not in ['user', 'admin']: role = 'user'
 
                 col1, col2, col3 = st.columns([2, 2, 1])
-            
                 with col1:
                     st.write(f"**Utilisateur :** {username}")
-            
+                    st.caption(f"Statut : {status}")
                 with col2:
-                    new_role = st.selectbox(
-                        "Rôle",
-                        ['user', 'admin'],
-                        index=['user', 'admin'].index(role),
-                        key=f"role_{username}_{i}"
-                    )
+                    new_role = st.selectbox("Rôle", ['user', 'admin'], index=['user', 'admin'].index(role), key=f"role_{username}_{i}")
                     if new_role != role:
-                        update_user_role(username, new_role)
-                        st.success(f"Le rôle de {username} a été mis à jour.")
-                        st.rerun()
-            
+                        changes["roles"][username] = new_role
                 with col3:
                     if status == 'free':
                         if st.button(f"Passer en Premium", key=f"upgrade_{username}_{i}"):
-                            update_user_subscription(username)
-                            st.success(f"{username} est passé en Premium.")
-                            st.rerun()
+                            changes["subscriptions"].append(username)
+
+            st.markdown("---")
+            if st.button("Enregistrer les modifications"):
+                with st.spinner("Application des changements..."):
+                    for username, new_role in changes["roles"].items():
+                        update_user_role(username, new_role)
+                    for username in changes["subscriptions"]:
+                        update_user_subscription(username)
+                st.success("Modifications enregistrées.")
+                st.rerun()
 
 
 
