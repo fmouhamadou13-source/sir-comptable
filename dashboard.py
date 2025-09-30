@@ -308,24 +308,40 @@ else:
         st.subheader("Manage User Roles and Subscriptions")
 
         all_users = get_all_users()
-        
+    
+        # Définition des rôles valides
+        valid_roles = ['user', 'admin']
+
         for user in all_users:
             username, role, status, expiry = user
             col1, col2, col3 = st.columns(3)
+
             with col1:
                 st.write(f"**User:** {username}")
+
             with col2:
-                new_role = st.selectbox("Role", ['user', 'admin'], index=['user', 'admin'].index(role), key=f"role_{username}")
+                # Vérifier si le rôle est valide, sinon mettre 'user' par défaut
+                default_index = valid_roles.index(role) if role in valid_roles else 0  
+
+                new_role = st.selectbox(
+                    "Role", 
+                    valid_roles, 
+                    index=default_index, 
+                    key=f"role_{username}"
+                )
+
                 if new_role != role:
                     update_user_role(username, new_role)
                     st.success(f"Role for {username} updated.")
                     st.rerun()
-            with col3:
-                if status == 'free':
-                    if st.button(f"Upgrade {username}", key=f"upgrade_{username}"):
-                        update_user_subscription(username)
-                        st.success(f"{username} upgraded to premium.")
-                        st.rerun()   
+
+        with col3:
+            if status == 'free':
+                if st.button(f"Upgrade {username}", key=f"upgrade_{username}"):
+                    update_user_subscription(username)
+                    st.success(f"{username} upgraded to premium.")
+                    st.rerun()
+   
     # --- PAGE TABLEAU DE BORD (VERSION CORRIGÉE POUR LA FACTURATION) ---
     if st.session_state.page == "Tableau de Bord":
         st.title(_("dashboard_title"))
@@ -1032,6 +1048,7 @@ else:
                             update_user_subscription(username)
                             st.success(f"{username} est passé en Premium.")
                             st.rerun()
+
 
 
 
