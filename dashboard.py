@@ -1047,8 +1047,8 @@ else:
                     ['user', 'admin'],
                     index=['user', 'admin'].index(role),
                     key=f"role_{username}_{i}"
-                   )
-                   if new_role != role:
+                )
+                if new_role != role:
                        changes_to_apply["roles"][username] = new_role
         
             with col3:
@@ -1069,3 +1069,4 @@ else:
             
             st.success("Changes have been saved successfully.")
             st.rerun()
+
