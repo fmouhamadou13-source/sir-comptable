@@ -993,32 +993,64 @@ else:
             st.write(_("settings_current_signature"))
             st.image(st.session_state.company_signature, width=150)
         
-    # --- PAGE ADMIN PANEL (SIMPLIFIÉE) ---
+    # --- ADMIN PANEL PAGE (CORRECTED TO PREVENT LOOPING) ---
     elif st.session_state.page == "Admin Panel":
-        st.title("Panneau d'Administration")
-        st.subheader("Gérer les Abonnements Utilisateurs")
+        st.title("Admin Panel")
+        st.subheader("Manage User Roles and Subscriptions")
 
-        profiles = get_all_profiles()
+        all_users = get_all_users()
     
-        if not profiles:
-            st.warning("Aucun profil utilisateur trouvé.")
+        if not all_users:
+            st.warning("No users found.")
         else:
-            st.markdown("---")
-            for profile in profiles:
-                user_id = profile.get('id')
-                email = profile.get('email', 'Email non disponible')
-                status = profile.get('subscription_status', 'free')
-                expiry = profile.get('expiry_date')
+            # We will use a dictionary to prepare the changes
+            changes_to_apply = {
+                "roles": {},
+                "subscriptions": []
+            }
+        
+            for i, user_data in enumerate(all_users):
+                if not isinstance(user_data, dict): continue
+
+                username = user_data.get('username', f'user_{i}')
+                role = user_data.get('role', 'user')
+                status = user_data.get('subscription_status', 'free')
             
-                col1, col2 = st.columns([3, 1])
+                # Security check for invalid roles
+                if role not in ['user', 'admin']:
+                    role = 'user'
+
+                col1, col2, col3 = st.columns([2, 2, 1])
             
                 with col1:
-                    st.write(f"**Utilisateur :** {email}")
-                    st.caption(f"Statut : {status} {f'| Expire le : {expiry}' if expiry else ''}")
+                    st.write(f"**User:** {username}")
+                    st.caption(f"Status: {status}")
             
                 with col2:
+                    new_role = st.selectbox(
+                        "Role",
+                        ['user', 'admin'],
+                        index=['user', 'admin'].index(role),
+                        key=f"role_{username}_{i}"
+                    )
+                    if new_role != role:
+                        changes_to_apply["roles"][username] = new_role
+            
+                with col3:
                     if status == 'free':
-                        if st.button(f"Passer en Premium", key=f"upgrade_{user_id}"):
-                            update_user_subscription(user_id)
-                            st.success(f"{email} est maintenant un membre Premium.")
-                            st.rerun()
+                        if st.button(f"Upgrade to Premium", key=f"upgrade_{username}_{i}"):
+                            changes_to_apply["subscriptions"].append(username)
+
+            st.markdown("---")
+
+            if st.button("Save All Changes"):
+                with st.spinner("Applying changes..."):
+                    for username, new_role in changes_to_apply["roles"].items():
+                        update_user_role(username, new_role)
+                
+                    for username in changes_to_apply["subscriptions"]:
+                        update_user_subscription(username)
+                
+                st.success("Changes have been saved.")
+                st.rerun()
+
