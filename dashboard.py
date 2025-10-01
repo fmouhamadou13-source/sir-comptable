@@ -174,6 +174,27 @@ def update_user_role(user_id, new_role):
     except Exception:
         return False
         
+def get_all_profiles():
+    """Récupère tous les profils utilisateurs."""
+    try:
+        data = supabase.table('profiles').select('*').execute()
+        return data.data
+    except Exception:
+        return []
+        
+def update_user_subscription(user_id):
+    """Passe un utilisateur en premium pour 30 jours."""
+    from datetime import date, timedelta
+    try:
+        expiry = date.today() + timedelta(days=30)
+        supabase.table('profiles').update({
+            'subscription_status': 'premium',
+            'expiry_date': str(expiry)
+        }).eq('id', user_id).execute()
+        return True
+    except Exception:
+        return False
+
 # --- Initialisation de la mémoire ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "page" not in st.session_state: st.session_state.page = "Tableau de Bord"
@@ -1012,82 +1033,33 @@ else:
             st.write(_("settings_current_signature"))
             st.image(st.session_state.company_signature, width=150)
             
-    # --- Vérification de session ---
-    session = supabase.auth.get_session()
-    user_id = session.user.id if session.user else None
+    # --- PAGE ADMIN PANEL (SIMPLIFIÉE) ---
+    elif st.session_state.page == "Admin Panel":
+        st.title("Panneau d'Administration")
+        st.subheader("Gérer les Abonnements Utilisateurs")
 
-    if not user_id:
-        st.error("Vous devez être connecté pour accéder à cette page.")
-        st.stop()
-
-    role = get_user_role(user_id)
-    if role != 'admin':
-        st.error("Accès interdit. Cette page est réservée aux administrateurs.")
-        st.stop()
-
-    # --- Page Admin Panel ---
-    if st.session_state.page == "Admin Panel":
-        st.title("Admin Panel")
-        st.subheader("Manage User Roles and Subscriptions")
-
-        all_users = get_all_users()
+        profiles = get_all_profiles()
     
-        # Créer un dictionnaire pour stocker les changements
-        changes_to_apply = {
-            "roles": {},
-            "subscriptions": []
-        }
-
-        st.markdown("---")
-    
-        # Afficher les utilisateurs et leurs paramètres
-        for i, user_data in enumerate(all_users):
-            if not isinstance(user_data, dict):
-                continue
-
-            username = user_data.get('username', f'user_{i}')
-            role = user_data.get('role', 'user')
-            status = user_data.get('subscription_status', 'free')
-        
-            # Vérification sécurité rôle
-            if role not in ['user', 'admin']:
-                role = 'user'
-
-            col1, col2, col3 = st.columns([2, 2, 1])
-        
-            with col1:
-                st.write(f"**User:** {username}")
-        
-            with col2:
-                new_role = st.selectbox(
-                    "Role",
-                    ['user', 'admin'],
-                    index=['user', 'admin'].index(role),
-                    key=f"role_{username}_{i}"
-                )
-                if new_role != role:
-                    changes_to_apply["roles"][username] = new_role
-        
-            with col3:
-                if status == 'free':
-                    if st.button(f"Upgrade to Premium", key=f"upgrade_{username}_{i}"):
-                        changes_to_apply["subscriptions"].append(username)
-
-        st.markdown("---")
-
-        # Bouton pour appliquer tous les changements
-        if st.button("Save All Changes"):
-            with st.spinner("Applying changes..."):
-                for username, new_role in changes_to_apply["roles"].items():
-                    update_user_role(username, new_role)
+        if not profiles:
+            st.warning("Aucun profil utilisateur trouvé.")
+        else:
+            st.markdown("---")
+            for profile in profiles:
+                user_id = profile.get('id')
+                email = profile.get('email', 'Email non disponible')
+                status = profile.get('subscription_status', 'free')
+                expiry = profile.get('expiry_date')
             
-                for username in changes_to_apply["subscriptions"]:
-                    update_user_subscription(username)
+                col1, col2 = st.columns([3, 1])
             
-            st.success("Changes have been saved successfully.")
-            st.experimental_rerun()  # recharger la page pour refléter les changements
-
-
-
-
+                with col1:
+                    st.write(f"**Utilisateur :** {email}")
+                    st.caption(f"Statut : {status} {f'| Expire le : {expiry}' if expiry else ''}")
+            
+                with col2:
+                    if status == 'free':
+                        if st.button(f"Passer en Premium", key=f"upgrade_{user_id}"):
+                        update_user_subscription(user_id)
+                        st.success(f"{email} est maintenant un membre Premium.")
+                        st.rerun()
 
