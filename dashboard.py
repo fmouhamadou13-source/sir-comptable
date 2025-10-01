@@ -1059,7 +1059,8 @@ else:
                 with col2:
                     if status == 'free':
                         if st.button(f"Passer en Premium", key=f"upgrade_{user_id}"):
-                        update_user_subscription(user_id)
-                        st.success(f"{email} est maintenant un membre Premium.")
-                        st.rerun()
+                            update_user_subscription(user_id)
+                            st.success(f"{email} est maintenant un membre Premium.")
+                            st.rerun()
+
 
