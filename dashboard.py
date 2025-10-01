@@ -559,24 +559,36 @@ else:
                 
                     st.markdown("---")
                     st.subheader("Articles / Services")
+                
+                    # Boucle mise à jour pour les articles de la facture
                     for i, item in enumerate(st.session_state.invoice_items):
-                        cols = st.columns([2, 1, 1, 1])
+                        cols = st.columns([2, 2, 1, 1, 1])
                     
-                        # NOUVEAU : Liste déroulante des produits en stock
-                        product_list = [""] + list(st.session_state.stock["Nom du Produit"])
-                        selected_product = cols[0].selectbox(f"Produit #{i+1}", product_list, key=f"product_{i}")
+                        # Colonne 1: Sélection depuis le stock
+                        product_list = ["--- Autre Produit/Service ---"] + list(st.session_state.stock["Nom du Produit"])
+                        selected_product = cols[0].selectbox(f"Choisir du stock #{i+1}", product_list, key=f"stock_select_{i}")
 
-                        # Remplissage automatique du prix
-                        if selected_product:
+                        is_custom_item = (selected_product == "--- Autre Produit/Service ---")
+                    
+                        if not is_custom_item and selected_product:
+                            # Remplir automatiquement si un produit du stock est choisi
+                            item_description = selected_product
                             default_price = float(st.session_state.stock[st.session_state.stock["Nom du Produit"] == selected_product]["Prix de Vente"].iloc[0])
-                            item["description"] = selected_product
+                            is_disabled = True
                         else:
-                            default_price = 0.0
+                            # Permettre la saisie manuelle
+                            item_description = item.get("description", "")
+                            default_price = item.get("prix_unitaire", 0.0)
+                            is_disabled = False
 
-                        item["quantite"] = cols[1].number_input("Quantité", min_value=1, step=1, value=item.get("quantite", 1), key=f"qty_{i}")
-                        item["prix_unitaire"] = cols[2].number_input("Prix Unitaire", min_value=0.0, value=item.get("prix_unitaire", default_price), format="%.2f", key=f"price_{i}")
+                        # Colonne 2: Champ de description
+                        item["description"] = cols[1].text_input(f"Description #{i+1}", value=item_description, key=f"desc_{i}", disabled=is_disabled)
+                    
+                        # Colonnes restantes
+                        item["quantite"] = cols[2].number_input("Qté", min_value=1, step=1, value=item.get("quantite", 1), key=f"qty_{i}")
+                        item["prix_unitaire"] = cols[3].number_input("Prix Unit.", min_value=0.0, value=default_price, format="%.2f", key=f"price_{i}")
                         item["total"] = item["quantite"] * item["prix_unitaire"]
-                        cols[3].metric("Total", f"{item['total']:,.2f}")
+                        cols[4].metric("Total", f"{item['total']:,.2f}")
 
                     soustotal_ht = sum(item['total'] for item in st.session_state.invoice_items)
                     vat_rate = st.session_state.get('company_vat_rate', 0.0)
@@ -1053,4 +1065,5 @@ else:
                 
                 st.success("Changes have been saved.")
                 st.rerun()
+
 
