@@ -140,21 +140,15 @@ def signup(email, password):
 def login(email, password):
     return supabase.auth.sign_in_with_password({"email": email, "password": password})
     
-def get_user_profile(user_id):
-    """Récupère le profil complet d'un utilisateur."""
-    try:
-        data = supabase.table('profiles').select('*').eq('id', user_id).single().execute()
-        return data.data
-    except Exception:
-        return None
-        
 def get_user_role(user_id):
     try:
         data = supabase.table('profiles').select('role').eq('id', user_id).execute()
-        if data.data:
+        if data.data and len(data.data) > 0:
             return data.data[0]['role']
+        return 'user'
     except Exception:
         return 'user'
+        
 def get_all_users():
     """Récupère tous les utilisateurs depuis la table profiles."""
     try:
@@ -163,6 +157,7 @@ def get_all_users():
     except Exception as e:
         st.error(f"Erreur lors de la récupération des utilisateurs : {e}")
         return []
+        
 def update_user_role(user_id, new_role):
     """Met à jour le rôle d'un utilisateur dans la table profiles."""
     try:
@@ -1009,65 +1004,80 @@ else:
             st.write(_("settings_current_signature"))
             st.image(st.session_state.company_signature, width=150)
             
-    # --- PAGE ADMIN PANEL (CORRIGÉE POUR ÉVITER LA BOUCLE) ---
-    elif st.session_state.page == "Admin Panel":
-        st.title("Admin Panel")
-        st.subheader("Manage User Roles and Subscriptions")
+    # --- Vérification de session ---
+session = supabase.auth.get_session()
+user_id = session.user.id if session.user else None
 
-        all_users = get_all_users()
+if not user_id:
+    st.error("Vous devez être connecté pour accéder à cette page.")
+    st.stop()
+
+role = get_user_role(user_id)
+if role != 'admin':
+    st.error("Accès interdit. Cette page est réservée aux administrateurs.")
+    st.stop()
+
+# --- Page Admin Panel ---
+if st.session_state.page == "Admin Panel":
+    st.title("Admin Panel")
+    st.subheader("Manage User Roles and Subscriptions")
+
+    all_users = get_all_users()
     
-        # Create a dictionary to hold the changes to be applied
-        changes_to_apply = {
-            "roles": {},
-            "subscriptions": []
-        }
+    # Créer un dictionnaire pour stocker les changements
+    changes_to_apply = {
+        "roles": {},
+        "subscriptions": []
+    }
 
-        st.markdown("---")
+    st.markdown("---")
     
-        # Display the users and their settings
-        for i, user_data in enumerate(all_users):
-            if not isinstance(user_data, dict): continue
+    # Afficher les utilisateurs et leurs paramètres
+    for i, user_data in enumerate(all_users):
+        if not isinstance(user_data, dict):
+            continue
 
-            username = user_data.get('username', f'user_{i}')
-            role = user_data.get('role', 'user')
-            status = user_data.get('subscription_status', 'free')
+        username = user_data.get('username', f'user_{i}')
+        role = user_data.get('role', 'user')
+        status = user_data.get('subscription_status', 'free')
         
-            # Security check for invalid roles
-            if role not in ['user', 'admin']:
-                role = 'user'
+        # Vérification sécurité rôle
+        if role not in ['user', 'admin']:
+            role = 'user'
 
-            col1, col2, col3 = st.columns([2, 2, 1])
+        col1, col2, col3 = st.columns([2, 2, 1])
         
-            with col1:
-                st.write(f"**User:** {username}")
+        with col1:
+            st.write(f"**User:** {username}")
         
-            with col2:
-                new_role = st.selectbox(
-                    "Role",
-                    ['user', 'admin'],
-                    index=['user', 'admin'].index(role),
-                    key=f"role_{username}_{i}"
-                )
-                if new_role != role:
-                    changes_to_apply["roles"][username] = new_role
+        with col2:
+            new_role = st.selectbox(
+                "Role",
+                ['user', 'admin'],
+                index=['user', 'admin'].index(role),
+                key=f"role_{username}_{i}"
+            )
+            if new_role != role:
+                changes_to_apply["roles"][username] = new_role
         
-            with col3:
-                if status == 'free':
-                    if st.button(f"Upgrade to Premium", key=f"upgrade_{username}_{i}"):
-                        changes_to_apply["subscriptions"].append(username)
+        with col3:
+            if status == 'free':
+                if st.button(f"Upgrade to Premium", key=f"upgrade_{username}_{i}"):
+                    changes_to_apply["subscriptions"].append(username)
 
-        st.markdown("---")
+    st.markdown("---")
 
-        # A single button to apply all changes at once
-        if st.button("Save All Changes"):
-            with st.spinner("Applying changes..."):
-                for username, new_role in changes_to_apply["roles"].items():
-                    update_user_role(username, new_role)
+    # Bouton pour appliquer tous les changements
+    if st.button("Save All Changes"):
+        with st.spinner("Applying changes..."):
+            for username, new_role in changes_to_apply["roles"].items():
+                update_user_role(username, new_role)
             
-                for username in changes_to_apply["subscriptions"]:
-                    update_user_subscription(username)
+            for username in changes_to_apply["subscriptions"]:
+                update_user_subscription(username)
             
-            st.success("Changes have been saved successfully.")
-            st.rerun()
+        st.success("Changes have been saved successfully.")
+        st.experimental_rerun()  # recharger la page pour refléter les changements
+
 
 
