@@ -332,46 +332,6 @@ else:
             st.subheader("Administration")
         if st.button("Panneau Admin"):
             st.session_state.page = "Admin Panel"
-
-    # --- GESTION DES PAGES ---
-    if st.session_state.page == "Admin Panel":
-        st.title("Admin Panel")
-        st.subheader("Manage User Roles and Subscriptions")
-
-        all_users = get_all_users()
-    
-        # Définition des rôles valides
-        valid_roles = ['user', 'admin']
-
-        for user in all_users:
-            username, role, status, expiry = user
-            col1, col2, col3 = st.columns(3)
-
-            with col1:
-                st.write(f"**User:** {username}")
-
-            with col2:
-                # Vérifier si le rôle est valide, sinon mettre 'user' par défaut
-                default_index = valid_roles.index(role) if role in valid_roles else 0  
-
-                new_role = st.selectbox(
-                    "Role", 
-                    valid_roles, 
-                    index=default_index, 
-                    key=f"role_{username}"
-                )
-
-                if new_role != role:
-                    update_user_role(username, new_role)
-                    st.success(f"Role for {username} updated.")
-                    st.rerun()
-
-        with col3:
-            if status == 'free':
-                if st.button(f"Upgrade {username}", key=f"upgrade_{username}"):
-                    update_user_subscription(username)
-                    st.success(f"{username} upgraded to premium.")
-                    st.rerun()
    
     # --- PAGE TABLEAU DE BORD (VERSION CORRIGÉE POUR LA FACTURATION) ---
     if st.session_state.page == "Tableau de Bord":
@@ -1033,3 +993,32 @@ else:
             st.write(_("settings_current_signature"))
             st.image(st.session_state.company_signature, width=150)
         
+    # --- PAGE ADMIN PANEL (SIMPLIFIÉE) ---
+    elif st.session_state.page == "Admin Panel":
+        st.title("Panneau d'Administration")
+        st.subheader("Gérer les Abonnements Utilisateurs")
+
+        profiles = get_all_profiles()
+    
+        if not profiles:
+            st.warning("Aucun profil utilisateur trouvé.")
+        else:
+            st.markdown("---")
+            for profile in profiles:
+                user_id = profile.get('id')
+                email = profile.get('email', 'Email non disponible')
+                status = profile.get('subscription_status', 'free')
+                expiry = profile.get('expiry_date')
+            
+                col1, col2 = st.columns([3, 1])
+            
+                with col1:
+                    st.write(f"**Utilisateur :** {email}")
+                    st.caption(f"Statut : {status} {f'| Expire le : {expiry}' if expiry else ''}")
+            
+                with col2:
+                    if status == 'free':
+                        if st.button(f"Passer en Premium", key=f"upgrade_{user_id}"):
+                            update_user_subscription(user_id)
+                            st.success(f"{email} est maintenant un membre Premium.")
+                            st.rerun()
