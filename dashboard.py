@@ -1032,35 +1032,4 @@ else:
         if st.session_state.company_signature:
             st.write(_("settings_current_signature"))
             st.image(st.session_state.company_signature, width=150)
-            
-    # --- PAGE ADMIN PANEL (SIMPLIFIÉE) ---
-    elif st.session_state.page == "Admin Panel":
-        st.title("Panneau d'Administration")
-        st.subheader("Gérer les Abonnements Utilisateurs")
-
-        profiles = get_all_profiles()
-    
-        if not profiles:
-            st.warning("Aucun profil utilisateur trouvé.")
-        else:
-            st.markdown("---")
-            for profile in profiles:
-                user_id = profile.get('id')
-                email = profile.get('email', 'Email non disponible')
-                status = profile.get('subscription_status', 'free')
-                expiry = profile.get('expiry_date')
-            
-                col1, col2 = st.columns([3, 1])
-            
-                with col1:
-                    st.write(f"**Utilisateur :** {email}")
-                    st.caption(f"Statut : {status} {f'| Expire le : {expiry}' if expiry else ''}")
-            
-                with col2:
-                    if status == 'free':
-                        if st.button(f"Passer en Premium", key=f"upgrade_{user_id}"):
-                            update_user_subscription(user_id)
-                            st.success(f"{email} est maintenant un membre Premium.")
-                            st.rerun()
-
-
+        
