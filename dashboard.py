@@ -1013,79 +1013,80 @@ else:
             st.image(st.session_state.company_signature, width=150)
             
     # --- Vérification de session ---
-session = supabase.auth.get_session()
-user_id = session.user.id if session.user else None
+    session = supabase.auth.get_session()
+    user_id = session.user.id if session.user else None
 
-if not user_id:
-    st.error("Vous devez être connecté pour accéder à cette page.")
-    st.stop()
+    if not user_id:
+        st.error("Vous devez être connecté pour accéder à cette page.")
+        st.stop()
 
-role = get_user_role(user_id)
-if role != 'admin':
-    st.error("Accès interdit. Cette page est réservée aux administrateurs.")
-    st.stop()
+    role = get_user_role(user_id)
+    if role != 'admin':
+        st.error("Accès interdit. Cette page est réservée aux administrateurs.")
+        st.stop()
 
-# --- Page Admin Panel ---
-if st.session_state.page == "Admin Panel":
-    st.title("Admin Panel")
-    st.subheader("Manage User Roles and Subscriptions")
+    # --- Page Admin Panel ---
+    if st.session_state.page == "Admin Panel":
+        st.title("Admin Panel")
+        st.subheader("Manage User Roles and Subscriptions")
 
-    all_users = get_all_users()
+        all_users = get_all_users()
     
-    # Créer un dictionnaire pour stocker les changements
-    changes_to_apply = {
-        "roles": {},
-        "subscriptions": []
-    }
+        # Créer un dictionnaire pour stocker les changements
+        changes_to_apply = {
+            "roles": {},
+            "subscriptions": []
+        }
 
-    st.markdown("---")
+        st.markdown("---")
     
-    # Afficher les utilisateurs et leurs paramètres
-    for i, user_data in enumerate(all_users):
-        if not isinstance(user_data, dict):
-            continue
+        # Afficher les utilisateurs et leurs paramètres
+        for i, user_data in enumerate(all_users):
+            if not isinstance(user_data, dict):
+                continue
 
-        username = user_data.get('username', f'user_{i}')
-        role = user_data.get('role', 'user')
-        status = user_data.get('subscription_status', 'free')
+            username = user_data.get('username', f'user_{i}')
+            role = user_data.get('role', 'user')
+            status = user_data.get('subscription_status', 'free')
         
-        # Vérification sécurité rôle
-        if role not in ['user', 'admin']:
-            role = 'user'
+            # Vérification sécurité rôle
+            if role not in ['user', 'admin']:
+                role = 'user'
 
-        col1, col2, col3 = st.columns([2, 2, 1])
+            col1, col2, col3 = st.columns([2, 2, 1])
         
-        with col1:
-            st.write(f"**User:** {username}")
+            with col1:
+                st.write(f"**User:** {username}")
         
-        with col2:
-            new_role = st.selectbox(
-                "Role",
-                ['user', 'admin'],
-                index=['user', 'admin'].index(role),
-                key=f"role_{username}_{i}"
-            )
-            if new_role != role:
-                changes_to_apply["roles"][username] = new_role
+            with col2:
+                new_role = st.selectbox(
+                    "Role",
+                    ['user', 'admin'],
+                    index=['user', 'admin'].index(role),
+                    key=f"role_{username}_{i}"
+                )
+                if new_role != role:
+                    changes_to_apply["roles"][username] = new_role
         
-        with col3:
-            if status == 'free':
-                if st.button(f"Upgrade to Premium", key=f"upgrade_{username}_{i}"):
-                    changes_to_apply["subscriptions"].append(username)
+            with col3:
+                if status == 'free':
+                    if st.button(f"Upgrade to Premium", key=f"upgrade_{username}_{i}"):
+                        changes_to_apply["subscriptions"].append(username)
 
-    st.markdown("---")
+        st.markdown("---")
 
-    # Bouton pour appliquer tous les changements
-    if st.button("Save All Changes"):
-        with st.spinner("Applying changes..."):
-            for username, new_role in changes_to_apply["roles"].items():
-                update_user_role(username, new_role)
+        # Bouton pour appliquer tous les changements
+        if st.button("Save All Changes"):
+            with st.spinner("Applying changes..."):
+                for username, new_role in changes_to_apply["roles"].items():
+                    update_user_role(username, new_role)
             
-            for username in changes_to_apply["subscriptions"]:
-                update_user_subscription(username)
+                for username in changes_to_apply["subscriptions"]:
+                    update_user_subscription(username)
             
-        st.success("Changes have been saved successfully.")
-        st.experimental_rerun()  # recharger la page pour refléter les changements
+            st.success("Changes have been saved successfully.")
+            st.experimental_rerun()  # recharger la page pour refléter les changements
+
 
 
 
