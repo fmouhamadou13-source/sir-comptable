@@ -139,7 +139,15 @@ def signup(email, password):
 
 def login(email, password):
     return supabase.auth.sign_in_with_password({"email": email, "password": password})
-    
+
+def get_user_profile(user_id):
+    """Récupère le profil complet d'un utilisateur."""
+    try:
+        data = supabase.table('profiles').select('*').eq('id', user_id).single().execute()
+        return data.data
+    except Exception:
+        return None
+
 def get_user_role(user_id):
     try:
         data = supabase.table('profiles').select('role').eq('id', user_id).execute()
@@ -1078,6 +1086,7 @@ if st.session_state.page == "Admin Panel":
             
         st.success("Changes have been saved successfully.")
         st.experimental_rerun()  # recharger la page pour refléter les changements
+
 
 
 
