@@ -124,7 +124,13 @@ TEXTS = {
 def _(key):
     lang = st.session_state.get("language", "Français")
     return TEXTS.get(key, {}).get(lang, f"[{key}]")
-
+def safe_encode(text):
+    if not text:
+        return ""
+    try:
+        return str(text).encode("latin-1", "replace").decode("latin-1")
+    except Exception:
+        return str(text)
 # --- CONNEXION SUPABASE ET NOUVELLES FONCTIONS UTILISATEURS ---
 @st.cache_resource
 def init_supabase_connection():
@@ -1065,5 +1071,6 @@ else:
                 
                 st.success("Changes have been saved.")
                 st.rerun()
+
 
 
