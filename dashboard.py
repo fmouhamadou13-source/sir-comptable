@@ -660,7 +660,7 @@ else:
                         current_y = pdf.get_y()
                         pdf.set_y(8)
                         pdf.set_x(110)
-                        pdf.set_font("Arial", 'B', 12)
+                        pdf.set_font("Helvetica", 'B', 12)
                         company_name_safe = safe_encode(st.session_state.company_name)
                         company_address_safe = safe_encode(st.session_state.company_address)
                         company_contact_safe = safe_encode(st.session_state.company_contact)
@@ -671,30 +671,32 @@ else:
                         client_safe = safe_encode(facture['Client'])
                         date_emission_safe = safe_encode(facture['Date Émission'].strftime('%d/%m/%Y'))
 
-                        pdf.set_font("Arial", 'B', 14)
+                        pdf.set_font("Helvetica", 'B', 14)
                         pdf.cell(0, 10, text=f"Facture N {facture_num_safe}", border=0, ln=1, align='C')
                         pdf.ln(5)
-                        pdf.set_font("Arial", '', 12)
+                        pdf.set_font("Helvetica", '', 12)
                         pdf.cell(0, 8, text=f"Client: {client_safe}", ln=1)
                         pdf.cell(0, 8, text=f"Date: {date_emission_safe}", ln=1)
                         pdf.ln(10)
                     
-                        pdf.set_font("Arial", 'B', 12)
+                        pdf.set_font("Helvetica", 'B', 12)
                         pdf.cell(150, 10, "Description", 1, 0, 'C')
                         pdf.cell(40, 10, "Montant", 1, 1, 'C')
-                        pdf.set_font("Arial", '', 12)
+                        pdf.set_font("Helvetica", '', 12)
                     
                         for item in facture["Articles"]:
                             safe_description = safe_encode(item['description'])
+                            montant = item.get("total", item.get("montant", 0.0))  # compatibilité
                             pdf.cell(150, 10, text=safe_description, border=1)
-                            pdf.cell(40, 10, text=f"{item['montant']:,.2f}", border=1, ln=1, align='R')
+                            pdf.cell(40, 10, text=f"{montant:,.2f}", border=1, ln=1, align='R')
 
-                        pdf.set_font("Arial", '', 12)
+
+                        pdf.set_font("Helvetical", '', 12)
                         pdf.cell(150, 10, text="Sous-total HT", border=1, align='R')
                         pdf.cell(40, 10, text=f"{facture.get('Sous-total', 0):,.2f}", border=1, ln=1, align='R')
                         pdf.cell(150, 10, text=f"TVA ({facture.get('TVA %', 0)}%)", border=1, align='R')
                         pdf.cell(40, 10, text=f"{facture.get('Montant TVA', 0):,.2f}", border=1, ln=1, align='R')
-                        pdf.set_font("Arial", 'B', 12)
+                        pdf.set_font("Helvetica", 'B', 12)
                         pdf.cell(150, 10, text="TOTAL TTC", border=1, align='R')
                         pdf.cell(40, 10, text=f"{facture['Montant']:,.2f}", border=1, ln=1, align='R')
                     
@@ -1071,6 +1073,7 @@ else:
                 
                 st.success("Changes have been saved.")
                 st.rerun()
+
 
 
 
