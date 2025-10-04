@@ -413,8 +413,15 @@ else:
                 if 'Revenu' not in monthly_summary.columns: monthly_summary['Revenu'] = 0
                 if 'Dépense' not in monthly_summary.columns: monthly_summary['Dépense'] = 0
 
-                fig_line = px.line(monthly_summary, x='Mois', y=[_("revenues"), _("expenses")], title=f'{_("revenues")} vs. {_("expenses")}')
+                fig_line = px.line(
+                    monthly_summary,
+                    x='Mois',
+                    y=['Revenu', 'Dépense'],  # ✅ Noms exacts des colonnes
+                    labels={'value': _('amount'), 'variable': _('type'), 'Mois': _('month')},
+                    title=f"{_('revenues')} vs. {_('expenses')}"
+                )
                 st.plotly_chart(fig_line, use_container_width=True)
+
             else:
                 st.info(_("no_data_for_graph"))
             
@@ -1072,6 +1079,7 @@ else:
                 
                 st.success("Changes have been saved.")
                 st.rerun()
+
 
 
 
