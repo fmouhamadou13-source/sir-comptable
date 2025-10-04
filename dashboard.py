@@ -690,7 +690,6 @@ else:
                             pdf.cell(150, 10, text=safe_description, border=1)
                             pdf.cell(40, 10, text=f"{montant:,.2f}", border=1, ln=1, align='R')
 
-
                         pdf.set_font("Helvetical", '', 12)
                         pdf.cell(150, 10, text="Sous-total HT", border=1, align='R')
                         pdf.cell(40, 10, text=f"{facture.get('Sous-total', 0):,.2f}", border=1, ln=1, align='R')
@@ -1073,6 +1072,7 @@ else:
                 
                 st.success("Changes have been saved.")
                 st.rerun()
+
 
 
 
