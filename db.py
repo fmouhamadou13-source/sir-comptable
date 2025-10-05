@@ -15,7 +15,28 @@ supabase: Client = init_supabase_connection()
 
 # --- FONCTIONS D'AUTHENTIFICATION ---
 def signup(email, password):
-    return supabase.auth.sign_up({"email": email, "password": password})
+    """Inscription utilisateur + création du profil associé."""
+    try:
+        # Étape 1 : Création du compte Supabase Auth
+        response = supabase.auth.sign_up({"email": email, "password": password})
+        user = response.user
+
+        if not user:
+            return {"error": "Inscription échouée"}
+
+        # Étape 2 : Création du profil dans la table 'profiles'
+        supabase.table("profiles").insert({
+            "id": user.id,
+            "email": email,
+            "role": "user",
+            "subscription_status": "free",
+            "expiry_date": None
+        }).execute()
+
+        return {"success": True, "user": user}
+
+    except Exception as e:
+        return {"error": str(e)}
 
 def login(email, password):
     return supabase.auth.sign_in_with_password({"email": email, "password": password})
@@ -39,21 +60,9 @@ def get_all_profiles():
         return []
 
 def get_all_users():
-    """Récupère les utilisateurs depuis auth.users + profils."""
     try:
-        profiles = supabase.table('profiles').select('id, role, subscription_status, expiry_date').execute()
-        users = supabase.table('auth.users').select('id, email').execute()
-
-        profiles_dict = {p['id']: p for p in profiles.data or []}
-        users_dict = {u['id']: u['email'] for u in users.data or []}
-
-        all_users = []
-        for user_id, profile in profiles_dict.items():
-            email = users_dict.get(user_id, "non renseigné")
-            profile["email"] = email
-            all_users.append(profile)
-
-        return all_users
+        data = supabase.table('profiles').select('id, email, role, subscription_status, expiry_date').execute()
+        return data.data
     except Exception as e:
         st.error(f"Erreur récupération utilisateurs : {e}")
         return []
