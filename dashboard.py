@@ -162,7 +162,14 @@ def get_user_role(user_id):
     except Exception:
         return 'user'
     return 'user'
-
+def get_all_users():
+    """Fetches all user profiles from Supabase."""
+    try:
+        data = supabase.table('profiles').select('*').execute()
+        return data.data
+    except Exception as e:
+        st.error(f"Error fetching users: {e}")
+        return []
 # --- Initialisation de la mémoire ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "page" not in st.session_state: st.session_state.page = "Tableau de Bord"
@@ -1039,6 +1046,7 @@ else:
                 
                 st.success("Changes have been saved.")
                 st.rerun()
+
 
 
 
