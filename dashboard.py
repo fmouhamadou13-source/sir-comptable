@@ -1,4 +1,4 @@
-# dashboard.py
+# --- IMPORTS AND SUPABASE CONNECTION ---
 import streamlit as st
 import pandas as pd
 from PIL import Image
@@ -146,66 +146,21 @@ def init_supabase_connection():
 
 supabase: Client = init_supabase_connection()
 
+# --- NEW USER MANAGEMENT FUNCTIONS ---
 def signup(email, password):
     return supabase.auth.sign_up({"email": email, "password": password})
 
 def login(email, password):
     return supabase.auth.sign_in_with_password({"email": email, "password": password})
 
-def get_user_profile(user_id):
-    """Récupère le profil complet d'un utilisateur."""
-    try:
-        data = supabase.table('profiles').select('*').eq('id', user_id).single().execute()
-        return data.data
-    except Exception:
-        return None
-
-def get_user_role(user_id):
+get_user_role(user_id):
     try:
         data = supabase.table('profiles').select('role').eq('id', user_id).execute()
-        if data.data and len(data.data) > 0:
+        if data.data:
             return data.data[0]['role']
-        return 'user'
     except Exception:
         return 'user'
-        
-def get_all_users():
-    """Récupère tous les utilisateurs depuis la table profiles."""
-    try:
-        data = supabase.table('profiles').select('*').execute()
-        return data.data
-    except Exception as e:
-        st.error(f"Erreur lors de la récupération des utilisateurs : {e}")
-        return []
-        
-def update_user_role(user_id, new_role):
-    """Met à jour le rôle d'un utilisateur dans la table profiles."""
-    try:
-        supabase.table('profiles').update({'role': new_role}).eq('id', user_id).execute()
-        return True
-    except Exception:
-        return False
-        
-def get_all_profiles():
-    """Récupère tous les profils utilisateurs."""
-    try:
-        data = supabase.table('profiles').select('*').execute()
-        return data.data
-    except Exception:
-        return []
-        
-def update_user_subscription(user_id):
-    """Passe un utilisateur en premium pour 30 jours."""
-    from datetime import date, timedelta
-    try:
-        expiry = date.today() + timedelta(days=30)
-        supabase.table('profiles').update({
-            'subscription_status': 'premium',
-            'expiry_date': str(expiry)
-        }).eq('id', user_id).execute()
-        return True
-    except Exception:
-        return False
+    return 'user'
 
 # --- Initialisation de la mémoire ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
@@ -259,17 +214,16 @@ def add_transaction(transaction_date, trans_type, amount, category, description)
     new_data = pd.DataFrame([{"Date": pd.to_datetime(transaction_date), "Type": trans_type, "Montant": amount, "Catégorie": category, "Description": description}])
     st.session_state.transactions = pd.concat([st.session_state.transactions, new_data], ignore_index=True)
 
-# --- STRUCTURE PRINCIPALE AVEC MUR DE CONNEXION ---
+# --- UPDATED LOGIN/SIGNUP PAGE ---
 if not st.session_state.get("logged_in"):
     st.title("Sir Comptable")
-    choice = st.selectbox(_("choose_section"), [_("login"), _("signup")])
+    choice = st.selectbox("Navigation", ["Login", "Sign Up"])
 
-    if choice == _("login"):
+    if choice == "Login":
         with st.form("login_form"):
-            st.subheader(_("login"))
-            email = st.text_input(_("email"))
-            password = st.text_input(_("password"), type="password")
-            submitted = st.form_submit_button(_("login_button"))
+            email = st.text_input("Email")
+            password = st.text_input("Password", type="password")
+            submitted = st.form_submit_button("Login")
             if submitted:
                 response = login(email, password)
                 if response.user:
@@ -277,22 +231,21 @@ if not st.session_state.get("logged_in"):
                     st.session_state.user = response.user
                     st.rerun()
                 else:
-                    st.error(_("invalid_credentials"))
+                    st.error("Invalid login credentials.")
     
-    elif choice == _("signup"):
+    elif choice == "Sign Up":
         with st.form("signup_form"):
-            st.subheader(_("signup"))
-            email = st.text_input(_("email"))
-            password = st.text_input(_("password"), type="password")
-            submitted = st.form_submit_button(_("signup_button"))
+            email = st.text_input("Email")
+            password = st.text_input("Password", type="password")
+            submitted = st.form_submit_button("Sign Up")
             if submitted:
                 response = signup(email, password)
                 if response.user:
-                    st.success(_("signup_success"))
+                    st.success("Signup successful! Please check your email to confirm your account.")
                 else:
-                    st.error(_("signup_error"))
+                    st.error("Could not sign up. The user may already exist or the password may be too weak.")
 else:
-
+    
     # --- LOGIQUE DE LA BARRE LATÉRALE MISE À JOUR ---
     with st.sidebar:
         st.write(f"Connecté en tant que : {st.session_state.user.email}")
@@ -1085,6 +1038,7 @@ else:
                 
                 st.success("Changes have been saved.")
                 st.rerun()
+
 
 
 
