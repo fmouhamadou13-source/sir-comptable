@@ -9,6 +9,12 @@ from fpdf import FPDF
 import requests
 import os
 from supabase import create_client, Client
+from db import check_expired_subscriptions
+
+# Vérifie les abonnements expirés à chaque lancement
+expired_count = check_expired_subscriptions()
+if expired_count > 0:
+    st.info(f"🕓 {expired_count} abonnement(s) premium expiré(s) ont été réinitialisés.")
 
 # --- DICTIONNAIRE DE TRADUCTION COMPLET ---
 TEXTS = {
@@ -1079,6 +1085,7 @@ else:
                 
                 st.success("Changes have been saved.")
                 st.rerun()
+
 
 
 
