@@ -986,42 +986,65 @@ else:
             st.write(_("settings_current_signature"))
             st.image(st.session_state.company_signature, width=150)
         
-    # --- PAGE ADMIN PANEL (CORRIGÉE) ---
+    # --- PAGE ADMIN PANEL (SUPABASE - VERSION CORRIGÉE) ---
     elif st.session_state.page == "Admin Panel":
-        st.title("Admin Panel")
-        st.subheader("Manage User Roles and Subscriptions")
+        st.title("Panneau d'administration")
+        st.subheader("Gestion des utilisateurs et abonnements")
 
-        all_users = get_all_users()
-    
-        # En-têtes pour la clarté
-        col1, col2, col3 = st.columns([2, 2, 1])
-        col1.write("**User**")
-        col2.write("**Role**")
-        col3.write("**Subscription**")
+        all_users = get_all_users()  # Doit retourner la liste des profils Supabase
 
-        st.markdown("---")
-    
-        for i, user in enumerate(all_users):
-            username, role, status, expiry = user
-            col1, col2, col3 = st.columns([2, 2, 1])
+        if not all_users:
+            st.warning("Aucun utilisateur trouvé dans la base.")
+        else:
+            st.markdown("---")
+            col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
+            col1.write("**Utilisateur**")
+            col2.write("**Rôle**")
+            col3.write("**Abonnement**")
+            col4.write("**Action**")
 
-            with col1:
-                st.write(username)
-        
-            with col2:
-                new_role = st.selectbox(" ", ['user', 'admin'], index=['user', 'admin'].index(role), key=f"role_{username}_{i}", label_visibility="collapsed")
-                if new_role != role:
-                    update_user_role(username, new_role)
-                    st.success(f"Role for {username} updated.")
-                    st.rerun()
+            for i, user in enumerate(all_users):
+                user_id = user.get("id")
+                email = user.get("email", "Non renseigné")
+                role = user.get("role", "user")
+                status = user.get("subscription_status", "free")
 
-            with col3:
-                if status == 'premium':
-                    st.success("Premium")
-                else:
-                    if st.button(f"Upgrade", key=f"upgrade_{username}_{i}"):
-                        update_user_subscription(username)
-                        st.success(f"{username} upgraded.")
-                    st.rerun()
+                col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
 
+                with col1:
+                    st.write(email)
 
+                # --- Sélection du rôle ---
+                with col2:
+                    new_role = st.selectbox(
+                        label=" ",
+                        options=["user", "admin"],
+                        index=["user", "admin"].index(role) if role in ["user", "admin"] else 0,
+                        key=f"role_{user_id}_{i}",
+                        label_visibility="collapsed"
+                    )
+                    if new_role != role:
+                        update_user_role(user_id, new_role)
+                        st.success(f"Rôle de {email} mis à jour en {new_role}")
+                        st.rerun()
+
+                # --- Sélection du statut d'abonnement ---
+                with col3:
+                    new_status = st.selectbox(
+                        label=" ",
+                        options=["free", "premium"],
+                        index=["free", "premium"].index(status) if status in ["free", "premium"] else 0,
+                        key=f"status_{user_id}_{i}",
+                        label_visibility="collapsed"
+                    )
+                    if new_status != status:
+                        update_user_subscription_status(user_id, new_status)
+                        st.success(f"Statut d'abonnement de {email} mis à jour : {new_status}")
+                        st.rerun()
+
+                # --- Bouton de suppression éventuel ---
+                with col4:
+                    if st.button("🗑️", key=f"delete_{user_id}_{i}"):
+                        delete_user(user_id)
+                        st.warning(f"Utilisateur {email} supprimé.")
+                        st.rerun()
