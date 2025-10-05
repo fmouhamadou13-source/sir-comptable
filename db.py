@@ -38,25 +38,28 @@ def get_all_profiles():
     except Exception:
         return []
 
-def update_user_role(user_id, new_role):
-    """Met à jour le rôle d'un utilisateur."""
+def get_all_users():
     try:
-        supabase.table('profiles').update({'role': new_role}).eq('id', user_id).execute()
-        return True
-    except Exception:
-        return False
+        response = supabase.table("profiles").select("*").execute()
+        return response.data
+    except Exception as e:
+        print("Erreur get_all_users:", e)
+        return []
 
-def update_user_subscription(user_id):
-    """Passe un utilisateur en premium pour 30 jours."""
+def update_user_role(user_id, new_role):
     try:
-        expiry = date.today() + timedelta(days=30)
-        supabase.table('profiles').update({
-            'subscription_status': 'premium',
-            'expiry_date': str(expiry)
-        }).eq('id', user_id).execute()
-        return True
-    except Exception:
-        return False
+        supabase.table("profiles").update({"role": new_role}).eq("id", user_id).execute()
+    except Exception as e:
+        print("Erreur update_user_role:", e)
+
+def update_user_subscription_status(user_id, new_status):
+    try:
+        supabase.table("profiles").update({
+            "subscription_status": new_status,
+            "subscription_expiry": None if new_status == "free" else "9999-12-31"
+        }).eq("id", user_id).execute()
+    except Exception as e:
+        print("Erreur update_user_subscription_status:", e)
 
 
 # --- NOUVELLE FONCTION AUTOMATIQUE : vérification quotidienne ---
