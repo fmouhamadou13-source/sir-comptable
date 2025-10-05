@@ -9,6 +9,7 @@ from fpdf import FPDF
 import requests
 import os
 from supabase import create_client, Client
+from db import get_user_profile
 from db import check_expired_subscriptions
 
 # Vérifie les abonnements expirés à chaque lancement
@@ -153,7 +154,7 @@ def signup(email, password):
 def login(email, password):
     return supabase.auth.sign_in_with_password({"email": email, "password": password})
 
-get_user_role(user_id):
+def get_user_role(user_id):
     try:
         data = supabase.table('profiles').select('role').eq('id', user_id).execute()
         if data.data:
@@ -1038,6 +1039,7 @@ else:
                 
                 st.success("Changes have been saved.")
                 st.rerun()
+
 
 
 
