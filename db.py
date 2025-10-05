@@ -1,7 +1,7 @@
 # db.py
+from datetime import date, timedelta
 import streamlit as st
 from supabase import create_client, Client
-from datetime import date, timedelta
 
 # --- CONNEXION SUPABASE ---
 @st.cache_resource
@@ -39,27 +39,41 @@ def get_all_profiles():
         return []
 
 def get_all_users():
+    """Récupère tous les utilisateurs depuis la table 'profiles'."""
     try:
-        response = supabase.table("profiles").select("*").execute()
-        return response.data
+        data = supabase.table('profiles').select('id, email, role, subscription_status, expiry_date').execute()
+        return data.data or []
     except Exception as e:
-        print("Erreur get_all_users:", e)
+        st.error(f"Erreur récupération utilisateurs : {e}")
         return []
 
 def update_user_role(user_id, new_role):
+    """Met à jour le rôle (user/admin)."""
     try:
-        supabase.table("profiles").update({"role": new_role}).eq("id", user_id).execute()
+        supabase.table('profiles').update({'role': new_role}).eq('id', user_id).execute()
+        return True
     except Exception as e:
-        print("Erreur update_user_role:", e)
+        st.error(f"Erreur maj rôle : {e}")
+        return False
 
 def update_user_subscription_status(user_id, new_status):
+    """Change le statut d’abonnement (free/premium)."""
     try:
-        supabase.table("profiles").update({
-            "subscription_status": new_status,
-            "subscription_expiry": None if new_status == "free" else "9999-12-31"
-        }).eq("id", user_id).execute()
+        if new_status == "premium":
+            expiry = date.today() + timedelta(days=30)
+            supabase.table('profiles').update({
+                'subscription_status': 'premium',
+                'expiry_date': str(expiry)
+            }).eq('id', user_id).execute()
+        else:
+            supabase.table('profiles').update({
+                'subscription_status': 'free',
+                'expiry_date': None
+            }).eq('id', user_id).execute()
+        return True
     except Exception as e:
-        print("Erreur update_user_subscription_status:", e)
+        st.error(f"Erreur maj abonnement : {e}")
+        return False
 
 
 # --- NOUVELLE FONCTION AUTOMATIQUE : vérification quotidienne ---
