@@ -1056,3 +1056,4 @@ else:
                            }).eq("id", user_id).execute()
                            st.warning(f"{email} est repassé en Free.")
                            st.rerun()
+
