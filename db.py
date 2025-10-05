@@ -12,65 +12,97 @@ def init_supabase_connection():
 
 supabase: Client = init_supabase_connection()
 
-# ============================================================
-# 🧑‍💻 AUTHENTIFICATION
-# ============================================================
 
+# --- FONCTIONS D'AUTHENTIFICATION ---
 def signup(email, password):
-    """Créer un nouveau compte utilisateur"""
     return supabase.auth.sign_up({"email": email, "password": password})
 
 def login(email, password):
-    """Connexion utilisateur"""
     return supabase.auth.sign_in_with_password({"email": email, "password": password})
 
-def get_current_user():
-    """Retourne l'utilisateur actuellement connecté"""
-    session = supabase.auth.get_session()
-    return session.user if session and session.user else None
 
-
-# ============================================================
-# 👤 PROFILS / ABONNEMENTS
-# ============================================================
-
+# --- FONCTIONS DE GESTION DES PROFILS ---
 def get_user_profile(user_id):
+    """Récupère le profil complet d'un utilisateur."""
     try:
-        data = supabase.table('users').select('*').eq('id', user_id).single().execute()
+        data = supabase.table('profiles').select('*').eq('id', user_id).single().execute()
         return data.data
-    except Exception as e:
-        st.error(f"Erreur profil : {e}")
+    except Exception:
         return None
 
+def get_all_profiles():
+    """Récupère tous les profils utilisateurs (pour l'admin)."""
+    try:
+        data = supabase.table('profiles').select('id, email, role, subscription_status, expiry_date').execute()
+        return data.data
+    except Exception:
+        return []
+
+def update_user_role(user_id, new_role):
+    """Met à jour le rôle d'un utilisateur."""
+    try:
+        supabase.table('profiles').update({'role': new_role}).eq('id', user_id).execute()
+        return True
+    except Exception:
+        return False
+
 def update_user_subscription(user_id):
-    """Passe l'utilisateur en Premium pour 30 jours"""
+    """Passe un utilisateur en premium pour 30 jours."""
     try:
         expiry = date.today() + timedelta(days=30)
-        supabase.table('users').update({
+        supabase.table('profiles').update({
             'subscription_status': 'premium',
-            'expiry_date': expiry.isoformat()
+            'expiry_date': str(expiry)
         }).eq('id', user_id).execute()
         return True
-    except Exception as e:
-        st.error(f"Erreur abonnement : {e}")
+    except Exception:
         return False
 
 
-# ============================================================
-# 💰 COMPTES FINANCIERS
-# ============================================================
+# --- NOUVELLE FONCTION AUTOMATIQUE : vérification quotidienne ---
+def check_expired_subscriptions():
+    """
+    Vérifie les abonnements premium expirés et les repasse en 'free'.
+    Cette fonction peut être appelée au démarrage ou via un cron externe.
+    """
+    try:
+        # On récupère tous les comptes premium
+        data = supabase.table('profiles').select('id, expiry_date, subscription_status').eq('subscription_status', 'premium').execute()
 
+        if not data.data:
+            return 0  # aucun compte premium
+
+        today = date.today()
+        expired_users = [
+            user['id']
+            for user in data.data
+            if user.get('expiry_date') and date.fromisoformat(user['expiry_date']) < today
+        ]
+
+        for user_id in expired_users:
+            supabase.table('profiles').update({
+                'subscription_status': 'free',
+                'expiry_date': None
+            }).eq('id', user_id).execute()
+
+        return len(expired_users)
+
+    except Exception as e:
+        st.warning(f"Erreur lors de la vérification des abonnements : {e}")
+        return 0
+
+
+# --- FONCTIONS DE GESTION DES DONNÉES (CRUD) ---
 def get_accounts(user_id):
-    """Récupère tous les comptes financiers d'un utilisateur"""
+    """Récupère tous les comptes financiers d'un utilisateur."""
     try:
         data = supabase.table('accounts').select('*').eq('user_id', user_id).execute()
-        return data.data or []
-    except Exception as e:
-        st.error(f"Erreur comptes : {e}")
+        return data.data
+    except Exception:
         return []
 
 def add_account(user_id, name, balance, account_type):
-    """Ajoute un compte financier"""
+    """Ajoute un nouveau compte financier."""
     try:
         supabase.table('accounts').insert({
             'user_id': user_id,
@@ -79,107 +111,5 @@ def add_account(user_id, name, balance, account_type):
             'type': account_type
         }).execute()
         return True
-    except Exception as e:
-        st.error(f"Erreur ajout compte : {e}")
-        return False
-
-
-# ============================================================
-# 💳 TRANSACTIONS
-# ============================================================
-
-def add_transaction(user_id, account_id, trans_type, amount, category, description):
-    """Ajoute une transaction"""
-    try:
-        supabase.table('transactions').insert({
-            'user_id': user_id,
-            'account_id': account_id,
-            'type': trans_type,
-            'amount': amount,
-            'category': category,
-            'description': description,
-            'date': date.today()
-        }).execute()
-        return True
-    except Exception as e:
-        st.error(f"Erreur transaction : {e}")
-        return False
-
-def get_transactions(user_id):
-    """Récupère toutes les transactions de l'utilisateur"""
-    try:
-        data = supabase.table('transactions').select('*').eq('user_id', user_id).order('date', desc=True).execute()
-        return data.data or []
-    except Exception as e:
-        st.error(f"Erreur récupération transactions : {e}")
-        return []
-
-
-# ============================================================
-# 🧾 FACTURES (SIR BUSINESS)
-# ============================================================
-
-def add_invoice(user_id, number, client, issue_date, status, total_amount, articles):
-    """Crée une nouvelle facture"""
-    try:
-        supabase.table('invoices').insert({
-            'user_id': user_id,
-            'number': number,
-            'client': client,
-            'issue_date': issue_date,
-            'status': status,
-            'total_amount': total_amount,
-            'articles': articles  # stockés en JSON
-        }).execute()
-        return True
-    except Exception as e:
-        st.error(f"Erreur ajout facture : {e}")
-        return False
-
-def get_invoices(user_id):
-    """Liste toutes les factures"""
-    try:
-        data = supabase.table('invoices').select('*').eq('user_id', user_id).order('issue_date', desc=True).execute()
-        return data.data or []
-    except Exception as e:
-        st.error(f"Erreur récupération factures : {e}")
-        return []
-
-
-# ============================================================
-# 📦 STOCKS / PRODUITS
-# ============================================================
-
-def add_stock_item(user_id, product_name, description, quantity, purchase_price, sale_price):
-    """Ajoute un produit en stock"""
-    try:
-        supabase.table('stock').insert({
-            'user_id': user_id,
-            'product_name': product_name,
-            'description': description,
-            'quantity': quantity,
-            'purchase_price': purchase_price,
-            'sale_price': sale_price
-        }).execute()
-        return True
-    except Exception as e:
-        st.error(f"Erreur ajout stock : {e}")
-        return False
-
-def get_stock(user_id):
-    """Récupère la liste des produits en stock"""
-    try:
-        data = supabase.table('stock').select('*').eq('user_id', user_id).execute()
-        return data.data or []
-    except Exception as e:
-        st.error(f"Erreur récupération stock : {e}")
-        return []
-
-def update_stock_quantity(item_id, new_quantity):
-    """Met à jour la quantité d’un produit"""
-    try:
-        supabase.table('stock').update({'quantity': new_quantity}).eq('id', item_id).execute()
-        return True
-    except Exception as e:
-        st.error(f"Erreur mise à jour stock : {e}")
+    except Exception:
         return False
