@@ -15,16 +15,15 @@ supabase: Client = init_supabase_connection()
 
 # --- FONCTIONS D'AUTHENTIFICATION ---
 def signup(email, password):
-    """Inscription utilisateur + création du profil associé."""
+    """Inscription + création automatique du profil."""
     try:
-        # Étape 1 : Création du compte Supabase Auth
         response = supabase.auth.sign_up({"email": email, "password": password})
         user = response.user
 
         if not user:
             return {"error": "Inscription échouée"}
 
-        # Étape 2 : Création du profil dans la table 'profiles'
+        # Création automatique du profil
         supabase.table("profiles").insert({
             "id": user.id,
             "email": email,
@@ -60,6 +59,7 @@ def get_all_profiles():
         return []
 
 def get_all_users():
+    """Récupère tous les profils utilisateurs (pour l'admin)."""
     try:
         data = supabase.table('profiles').select('id, email, role, subscription_status, expiry_date').execute()
         return data.data
