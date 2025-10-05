@@ -39,10 +39,21 @@ def get_all_profiles():
         return []
 
 def get_all_users():
-    """Récupère tous les utilisateurs depuis la table 'profiles'."""
+    """Récupère les utilisateurs depuis auth.users + profils."""
     try:
-        data = supabase.table('profiles').select('id, email, role, subscription_status, expiry_date').execute()
-        return data.data or []
+        profiles = supabase.table('profiles').select('id, role, subscription_status, expiry_date').execute()
+        users = supabase.table('auth.users').select('id, email').execute()
+
+        profiles_dict = {p['id']: p for p in profiles.data or []}
+        users_dict = {u['id']: u['email'] for u in users.data or []}
+
+        all_users = []
+        for user_id, profile in profiles_dict.items():
+            email = users_dict.get(user_id, "non renseigné")
+            profile["email"] = email
+            all_users.append(profile)
+
+        return all_users
     except Exception as e:
         st.error(f"Erreur récupération utilisateurs : {e}")
         return []
