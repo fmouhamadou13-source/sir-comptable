@@ -988,63 +988,54 @@ else:
         
     # --- PAGE ADMIN PANEL (SUPABASE - VERSION CORRIGÉE) ---
     elif st.session_state.page == "Admin Panel":
-        st.title("Panneau d'administration")
+        st.title("🛠️ Panneau d'administration")
         st.subheader("Gestion des utilisateurs et abonnements")
 
-        all_users = get_all_users()  # Doit retourner la liste des profils Supabase
+        from db import get_all_users, update_user_role, update_user_subscription_status
+
+        all_users = get_all_users()
 
         if not all_users:
-            st.warning("Aucun utilisateur trouvé dans la base.")
+            st.warning("Aucun utilisateur trouvé.")
         else:
             st.markdown("---")
-            col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
-            col1.write("**Utilisateur**")
+            col1, col2, col3 = st.columns([3, 2, 2])
+            col1.write("**Email utilisateur**")
             col2.write("**Rôle**")
             col3.write("**Abonnement**")
-            col4.write("**Action**")
 
             for i, user in enumerate(all_users):
                 user_id = user.get("id")
-                email = user.get("email", "Non renseigné")
+                email = user.get("email", "inconnu")
                 role = user.get("role", "user")
                 status = user.get("subscription_status", "free")
 
-                col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
+                c1, c2, c3 = st.columns([3, 2, 2])
 
-                with col1:
+                with c1:
                     st.write(email)
 
-                # --- Sélection du rôle ---
-                with col2:
+                with c2:
                     new_role = st.selectbox(
-                        label=" ",
-                        options=["user", "admin"],
+                        "Choisir rôle",
+                        ["user", "admin"],
                         index=["user", "admin"].index(role) if role in ["user", "admin"] else 0,
-                        key=f"role_{user_id}_{i}",
-                        label_visibility="collapsed"
+                        key=f"role_{i}"
                     )
                     if new_role != role:
                         update_user_role(user_id, new_role)
                         st.success(f"Rôle de {email} mis à jour en {new_role}")
                         st.rerun()
 
-                # --- Sélection du statut d'abonnement ---
-                with col3:
+                with c3:
                     new_status = st.selectbox(
-                        label=" ",
-                        options=["free", "premium"],
+                        "Abonnement",
+                        ["free", "premium"],
                         index=["free", "premium"].index(status) if status in ["free", "premium"] else 0,
-                        key=f"status_{user_id}_{i}",
-                        label_visibility="collapsed"
+                        key=f"sub_{i}"
                     )
                     if new_status != status:
                         update_user_subscription_status(user_id, new_status)
-                        st.success(f"Statut d'abonnement de {email} mis à jour : {new_status}")
+                        st.success(f"{email} est maintenant {new_status}")
                         st.rerun()
 
-                # --- Bouton de suppression éventuel ---
-                with col4:
-                    if st.button("🗑️", key=f"delete_{user_id}_{i}"):
-                        delete_user(user_id)
-                        st.warning(f"Utilisateur {email} supprimé.")
-                        st.rerun()
