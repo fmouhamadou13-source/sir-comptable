@@ -163,9 +163,9 @@ def get_user_role(user_id):
         return 'user'
     return 'user'
 def get_all_users():
-    """Fetches all user profiles from Supabase."""
+    """Fetches all users from the Supabase profiles table."""
     try:
-        data = supabase.table('profiles').select('*').execute()
+        data = supabase.table('profiles').select('username, role, subscription_status, expiry_date').execute()
         return data.data
     except Exception as e:
         st.error(f"Error fetching users: {e}")
@@ -1023,4 +1023,5 @@ else:
                         update_user_subscription(username)
                         st.success(f"{username} upgraded.")
                     st.rerun()
+
 
