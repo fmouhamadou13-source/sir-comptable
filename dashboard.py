@@ -986,56 +986,73 @@ else:
             st.write(_("settings_current_signature"))
             st.image(st.session_state.company_signature, width=150)
         
-    # --- PAGE ADMIN PANEL (SUPABASE - VERSION CORRIGÉE) ---
-    elif st.session_state.page == "Admin Panel":
-        st.title("🛠️ Panneau d'administration")
-        st.subheader("Gestion des utilisateurs et abonnements")
+   # --- PAGE ADMIN PANEL ---
+   elif st.session_state.page == "Admin Panel":
+       st.title("🔧 Panneau d'administration")
+       st.subheader("Gestion des utilisateurs et abonnements")
 
-        from db import get_all_users, update_user_role, update_user_subscription_status
+       # Récupération de tous les utilisateurs
+       all_users = get_all_users()
 
-        all_users = get_all_users()
+       if not all_users:
+           st.error("Aucun utilisateur trouvé dans la table 'profiles'.")
+           st.info("💡 Conseil : crée un nouveau compte via la page d'inscription pour tester.")
+       else:
+           st.markdown("---")
+           col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
+           col1.write("**Email**")
+           col2.write("**Rôle**")
+           col3.write("**Abonnement**")
+           col4.write("**Action**")
 
-        if not all_users:
-            st.warning("Aucun utilisateur trouvé.")
-        else:
-            st.markdown("---")
-            col1, col2, col3 = st.columns([3, 2, 2])
-            col1.write("**Email utilisateur**")
-            col2.write("**Rôle**")
-            col3.write("**Abonnement**")
+           st.markdown("---")
 
-            for i, user in enumerate(all_users):
-                user_id = user.get("id")
-                email = user.get("email", "inconnu")
-                role = user.get("role", "user")
-                status = user.get("subscription_status", "free")
+           for i, user in enumerate(all_users):
+               user_id = user.get("id")
+               email = user.get("email", "non défini")
+               role = user.get("role", "user")
+               status = user.get("subscription_status", "free")
+               expiry = user.get("expiry_date", None)
 
-                c1, c2, c3 = st.columns([3, 2, 2])
+               col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
 
-                with c1:
-                    st.write(email)
+               # --- Colonne Email ---
+               with col1:
+                   st.write(email)
+                   st.caption(f"Expire le : {expiry}" if expiry else "—")
 
-                with c2:
-                    new_role = st.selectbox(
-                        "Choisir rôle",
-                        ["user", "admin"],
-                        index=["user", "admin"].index(role) if role in ["user", "admin"] else 0,
-                        key=f"role_{i}"
-                    )
-                    if new_role != role:
-                        update_user_role(user_id, new_role)
-                        st.success(f"Rôle de {email} mis à jour en {new_role}")
-                        st.rerun()
+               # --- Colonne Rôle ---
+               with col2:
+                   new_role = st.selectbox(
+                       " ",  # Label vide pour esthétique
+                       ["user", "admin"],
+                       index=["user", "admin"].index(role),
+                       key=f"role_{user_id}_{i}",
+                       label_visibility="collapsed"
+                   )
+                   if new_role != role:
+                       success = update_user_role(user_id, new_role)
+                       if success:
+                           st.success(f"Rôle de {email} mis à jour en {new_role}.")
+                           st.rerun()
 
-                with c3:
-                    new_status = st.selectbox(
-                        "Abonnement",
-                        ["free", "premium"],
-                        index=["free", "premium"].index(status) if status in ["free", "premium"] else 0,
-                        key=f"sub_{i}"
-                    )
-                    if new_status != status:
-                        update_user_subscription_status(user_id, new_status)
-                        st.success(f"{email} est maintenant {new_status}")
-                        st.rerun()
+               # --- Colonne Statut d’abonnement ---
+               with col3:
+                   st.write("✅ Premium" if status == "premium" else "🆓 Free")
 
+               # --- Colonne Action ---
+               with col4:
+                   if status == "free":
+                       if st.button("Passer Premium", key=f"premium_{user_id}_{i}"):
+                           success = update_user_subscription(user_id)
+                           if success:
+                               st.success(f"{email} est maintenant Premium !")
+                               st.rerun()
+                   else:
+                       if st.button("↩️ Revenir Free", key=f"free_{user_id}_{i}"):
+                           supabase.table("profiles").update({
+                               "subscription_status": "free",
+                               "expiry_date": None
+                           }).eq("id", user_id).execute()
+                           st.warning(f"{email} est repassé en Free.")
+                           st.rerun()
