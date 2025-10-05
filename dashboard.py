@@ -988,54 +988,39 @@ else:
         
     # --- PAGE ADMIN PANEL (CORRIGÉE) ---
     elif st.session_state.page == "Admin Panel":
-        st.title("Panneau d'Administration")
-        st.subheader("Gérer les Rôles et Abonnements des Utilisateurs")
+        st.title("Admin Panel")
+        st.subheader("Manage User Roles and Subscriptions")
 
-        all_users = get_all_users() # Assurez-vous que cette fonction existe et est correcte
+        all_users = get_all_users()
     
-        if not all_users:
-            st.warning("Aucun utilisateur trouvé.")
-        else:
-            st.markdown("---")
-            # Affichage des en-têtes
+        # En-têtes pour la clarté
+        col1, col2, col3 = st.columns([2, 2, 1])
+        col1.write("**User**")
+        col2.write("**Role**")
+        col3.write("**Subscription**")
+
+        st.markdown("---")
+    
+        for i, user in enumerate(all_users):
+            username, role, status, expiry = user
             col1, col2, col3 = st.columns([2, 2, 1])
-            col1.write("**Utilisateur**")
-            col2.write("**Rôle**")
-            col3.write("**Action d'Abonnement**")
 
-            for i, user_data in enumerate(all_users):
-                if not isinstance(user_data, dict): continue
+            with col1:
+                st.write(username)
+        
+            with col2:
+                new_role = st.selectbox(" ", ['user', 'admin'], index=['user', 'admin'].index(role), key=f"role_{username}_{i}", label_visibility="collapsed")
+                if new_role != role:
+                    update_user_role(username, new_role)
+                    st.success(f"Role for {username} updated.")
+                    st.rerun()
 
-                user_id = user_data.get('id')
-                email = user_data.get('email', 'Email non disponible')
-                role = user_data.get('role', 'user')
-                status = user_data.get('subscription_status', 'free')
-            
-                if role not in ['user', 'admin']: role = 'user'
+            with col3:
+                if status == 'premium':
+                    st.success("Premium")
+                else:
+                    if st.button(f"Upgrade", key=f"upgrade_{username}_{i}"):
+                        update_user_subscription(username)
+                        st.success(f"{username} upgraded.")
+                    st.rerun()
 
-                col1, col2, col3 = st.columns([2, 2, 1])
-            
-                with col1:
-                    st.write(email)
-                    st.caption(f"Statut : {status}")
-            
-                with col2:
-                    new_role = st.selectbox(
-                        " ", # Le label est déjà dans l'en-tête
-                        ['user', 'admin'],
-                        index=['user', 'admin'].index(role),
-                        key=f"role_{user_id}_{i}"
-                    )
-                    if new_role != role:
-                        update_user_role(user_id, new_role)
-                        st.success(f"Le rôle de {email} a été mis à jour.")
-                        st.rerun()
-            
-                with col3:
-                    if status == 'free':
-                        if st.button(f"Passer en Premium", key=f"upgrade_{user_id}_{i}"):
-                            update_user_subscription(user_id)
-                            st.success(f"{email} est maintenant un membre Premium.")
-                            st.rerun()
-                    else:
-                        st.success("Premium")
