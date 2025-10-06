@@ -68,7 +68,17 @@ def update_user_role(user_id, new_role):
     except Exception as e:
         st.error(f"Erreur maj rôle : {e}")
         return False
-
+def revert_to_free(user_id):
+    """Fait repasser un utilisateur au statut 'free'."""
+    try:
+        supabase.table("profiles").update({
+            "subscription_status": "free",
+            "expiry_date": None
+        }).eq("id", user_id).execute()
+        return True
+    except Exception as e:
+        st.error(f"Erreur lors de la mise à jour du statut : {e}")
+        return False
 
 # ✅ Fonction propre pour passer un utilisateur en Premium
 def update_user_subscription(user_id):
