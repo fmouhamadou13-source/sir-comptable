@@ -175,6 +175,18 @@ def get_all_users():
         st.error(f"Erreur récupération utilisateurs : {e}")
         return []
         
+def revert_to_free(user_id):
+    """Fait repasser un utilisateur au statut 'free'."""
+    try:
+        supabase.table("profiles").update({
+            "subscription_status": "free",
+            "expiry_date": None
+        }).eq("id", user_id).execute()
+        return True
+    except Exception as e:
+        st.error(f"Erreur lors de la mise à jour du statut : {e}")
+        return False  
+
 # --- Initialisation de la mémoire ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "page" not in st.session_state: st.session_state.page = "Tableau de Bord"
@@ -1067,5 +1079,6 @@ else:
                             if success:
                                 st.warning(f"{email} est repassé en Free.")
                                 st.rerun()
+
 
 
