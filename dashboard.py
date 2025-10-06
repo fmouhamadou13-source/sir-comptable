@@ -166,7 +166,7 @@ def get_user_role(user_id):
 def get_all_users():
     """Fetches all users from the Supabase profiles table."""
     try:
-        data = supabase.table('profiles').select('username, role, subscription_status, expiry_date').execute()
+        data = supabase.table('profiles').select('email, role, subscription_status, expiry_date').execute()
         return data.data
     except Exception as e:
         st.error(f"Error fetching users: {e}")
@@ -1063,5 +1063,6 @@ else:
                             }).eq("id", user_id).execute()
                             st.warning(f"{email} est repassé en Free.")
                             st.rerun()
+
 
 
