@@ -60,27 +60,27 @@ def get_all_users():
         return []
 
 
-def update_user_role(user_id, new_role):
-    """Met à jour le rôle (user/admin)."""
+ef update_user_role(user_id, new_role):
+    """Met à jour le rôle d'un utilisateur."""
     try:
         supabase.table('profiles').update({'role': new_role}).eq('id', user_id).execute()
         return True
-    except Exception as e:
-        st.error(f"Erreur maj rôle : {e}")
+    except Exception:
         return False
 
-# ✅ Fonction propre pour passer un utilisateur en Premium
-def update_user_subscription(user_id):
-    """Passe un utilisateur en Premium et fixe une date d’expiration à 30 jours."""
+def update_user_subscription(user_id, new_status):
+    """Passe un utilisateur en premium ou en free."""
+    from datetime import date, timedelta
     try:
-        expiry = date.today() + timedelta(days=30)
-        supabase.table('profiles').update({
-            'subscription_status': 'premium',
-            'expiry_date': str(expiry)
-        }).eq('id', user_id).execute()
+        if new_status == 'premium':
+            expiry = date.today() + timedelta(days=30)
+            update_data = {'subscription_status': 'premium', 'expiry_date': str(expiry)}
+        else: # free
+            update_data = {'subscription_status': 'free', 'expiry_date': None}
+            
+        supabase.table('profiles').update(update_data).eq('id', user_id).execute()
         return True
-    except Exception as e:
-        st.error(f"Erreur mise à jour Premium : {e}")
+    except Exception:
         return False
 # ✅ Fonction propre pour repasser un utilisateur en Free
 def revert_to_free(user_id):
