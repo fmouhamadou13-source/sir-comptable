@@ -12,7 +12,6 @@ def init_supabase_connection():
 
 supabase: Client = init_supabase_connection()
 
-
 # --- FONCTIONS D'AUTHENTIFICATION ---
 def signup(email, password):
     """Inscription + création automatique du profil."""
@@ -23,7 +22,7 @@ def signup(email, password):
         if not user:
             return {"error": "Inscription échouée"}
 
-        # Création automatique du profil
+        # Création automatique du profil utilisateur
         supabase.table("profiles").insert({
             "id": user.id,
             "email": email,
@@ -50,13 +49,6 @@ def get_user_profile(user_id):
     except Exception:
         return None
 
-def get_all_profiles():
-    """Récupère tous les profils utilisateurs (pour l'admin)."""
-    try:
-        data = supabase.table('profiles').select('id, email, role, subscription_status, expiry_date').execute()
-        return data.data
-    except Exception:
-        return []
 
 def get_all_users():
     """Récupère tous les profils utilisateurs (pour l'admin)."""
@@ -67,6 +59,7 @@ def get_all_users():
         st.error(f"Erreur récupération utilisateurs : {e}")
         return []
 
+
 def update_user_role(user_id, new_role):
     """Met à jour le rôle (user/admin)."""
     try:
@@ -76,36 +69,44 @@ def update_user_role(user_id, new_role):
         st.error(f"Erreur maj rôle : {e}")
         return False
 
-def update_user_subscription_status(user_id, new_status):
-    """Change le statut d’abonnement (free/premium)."""
+
+# ✅ Fonction propre pour passer un utilisateur en Premium
+def update_user_subscription(user_id):
+    """Passe un utilisateur en Premium et fixe une date d’expiration à 30 jours."""
     try:
-        if new_status == "premium":
-            expiry = date.today() + timedelta(days=30)
-            supabase.table('profiles').update({
-                'subscription_status': 'premium',
-                'expiry_date': str(expiry)
-            }).eq('id', user_id).execute()
-        else:
-            supabase.table('profiles').update({
-                'subscription_status': 'free',
-                'expiry_date': None
-            }).eq('id', user_id).execute()
+        expiry = date.today() + timedelta(days=30)
+        supabase.table('profiles').update({
+            'subscription_status': 'premium',
+            'expiry_date': str(expiry)
+        }).eq('id', user_id).execute()
         return True
     except Exception as e:
-        st.error(f"Erreur maj abonnement : {e}")
+        st.error(f"Erreur mise à jour Premium : {e}")
         return False
 
 
-# --- NOUVELLE FONCTION AUTOMATIQUE : vérification quotidienne ---
+# ✅ Fonction propre pour repasser un utilisateur en Free
+def revert_to_free(user_id):
+    """Reclasse un utilisateur Premium en Free."""
+    try:
+        supabase.table('profiles').update({
+            'subscription_status': 'free',
+            'expiry_date': None
+        }).eq('id', user_id).execute()
+        return True
+    except Exception as e:
+        st.error(f"Erreur retour à Free : {e}")
+        return False
+
+
+# --- Vérification automatique des abonnements expirés ---
 def check_expired_subscriptions():
     """
     Vérifie les abonnements premium expirés et les repasse en 'free'.
-    Cette fonction peut être appelée au démarrage ou via un cron externe.
+    Peut être appelée au démarrage ou via un cron externe.
     """
     try:
-        # On récupère tous les comptes premium
         data = supabase.table('profiles').select('id, expiry_date, subscription_status').eq('subscription_status', 'premium').execute()
-
         if not data.data:
             return 0  # aucun compte premium
 
@@ -137,6 +138,7 @@ def get_accounts(user_id):
         return data.data
     except Exception:
         return []
+
 
 def add_account(user_id, name, balance, account_type):
     """Ajoute un nouveau compte financier."""
