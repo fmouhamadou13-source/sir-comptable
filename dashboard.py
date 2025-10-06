@@ -1047,8 +1047,8 @@ else:
                     if new_status != status:
                         changes_to_apply["subscriptions"][user_id] = new_status
         
-           st.markdown("---")
-           if st.button("Enregistrer les modifications"):
+            st.markdown("---")
+            if st.button("Enregistrer les modifications"):
                 with st.spinner("Mise à jour en cours..."):
                     for user_id, new_role in changes_to_apply["roles"].items():
                         update_user_role(user_id, new_role)
@@ -1056,6 +1056,7 @@ else:
                         update_user_subscription(user_id, new_status)
                 st.success("Modifications enregistrées.")
                 st.rerun()
+
 
 
 
