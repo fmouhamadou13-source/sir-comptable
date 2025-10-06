@@ -155,13 +155,16 @@ def login(email, password):
     return supabase.auth.sign_in_with_password({"email": email, "password": password})
 
 def get_user_role(user_id):
+    """Retourne le rôle de l'utilisateur ou 'user' par défaut."""
     try:
         data = supabase.table('profiles').select('role').eq('id', user_id).execute()
-        if data.data:
+        if data.data and 'role' in data.data[0] and data.data[0]['role']:
             return data.data[0]['role']
-    except Exception:
+        else:
+            return 'user'
+    except Exception as e:
+        print("Erreur get_user_role:", e)
         return 'user'
-    return 'user'
     
 def get_all_users():
     """Fetches all users from the Supabase profiles table."""
@@ -1063,6 +1066,7 @@ else:
                             }).eq("id", user_id).execute()
                             st.warning(f"{email} est repassé en Free.")
                             st.rerun()
+
 
 
 
