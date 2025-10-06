@@ -996,7 +996,7 @@ else:
         st.title("🔧 Panneau d'administration")
         st.subheader("Gestion des utilisateurs et abonnements")
 
-        # --- Récupération des utilisateurs depuis Supabase ---
+        # --- Récupération de tous les utilisateurs ---
         all_users = get_all_users()
 
         if not all_users:
@@ -1011,28 +1011,36 @@ else:
             col4.write("**Action**")
             st.markdown("---")
 
+            # --- Parcours de tous les profils ---
             for i, user in enumerate(all_users):
                 user_id = user.get("id")
-                email = user.get("email", "non défini")
+                email = user.get("email")
                 role = user.get("role", "user")
-                status = user.get("subscription_status", "free")
-                expiry = user.get("expiry_date")
+                status = (user.get("subscription_status") or "free").lower()
+                expiry = user.get("expiry_date", None)
 
-                # Valeur de repli pour éviter les erreurs
-                if role not in ["user", "admin"]:
-                    role = "user"
+                # ⚠️ Sauter les entrées invalides
+                if not user_id or not email:
+                    continue
 
                 col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
 
                 # --- Colonne Email ---
                 with col1:
                     st.write(email)
-                    st.caption(f"Expire le : {expiry}" if expiry else "—")
+                    if expiry:
+                        st.caption(f"Expire le : {expiry}")
+                    else:
+                        st.caption("—")
 
                 # --- Colonne Rôle ---
                 with col2:
+                    # Sécurité : si le rôle n'est pas défini
+                    if role not in ["user", "admin"]:
+                        role = "user"
+
                     new_role = st.selectbox(
-                        " ",  # label vide
+                        " ",
                         ["user", "admin"],
                         index=["user", "admin"].index(role),
                         key=f"role_{user_id}_{i}",
@@ -1047,7 +1055,10 @@ else:
 
                 # --- Colonne Abonnement ---
                 with col3:
-                    st.write("✅ Premium" if status == "premium" else "🆓 Free")
+                    if status == "premium":
+                        st.write("✅ Premium")
+                    else:
+                        st.write("🆓 Free")
 
                 # --- Colonne Action ---
                 with col4:
@@ -1059,12 +1070,13 @@ else:
                                 st.rerun()
                     else:
                         if st.button("↩️ Revenir Free", key=f"free_{user_id}_{i}"):
-                            supabase.table("profiles").update({
-                                "subscription_status": "free",
-                                "expiry_date": None
-                            }).eq("id", user_id).execute()
-                            st.warning(f"{email} est repassé en Free.")
-                            st.rerun()
-
-
+                            try:
+                                supabase.table("profiles").update({
+                                    "subscription_status": "free",
+                                    "expiry_date": None
+                                }).eq("id", user_id).execute()
+                                st.warning(f"{email} est repassé en Free.")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Erreur lors du retour à Free : {e}")
 
