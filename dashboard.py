@@ -162,6 +162,7 @@ def get_user_role(user_id):
     except Exception:
         return 'user'
     return 'user'
+    
 def get_all_users():
     """Fetches all users from the Supabase profiles table."""
     try:
@@ -170,6 +171,7 @@ def get_all_users():
     except Exception as e:
         st.error(f"Error fetching users: {e}")
         return []
+        
 # --- Initialisation de la mémoire ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "page" not in st.session_state: st.session_state.page = "Tableau de Bord"
@@ -1061,4 +1063,5 @@ else:
                             }).eq("id", user_id).execute()
                             st.warning(f"{email} est repassé en Free.")
                             st.rerun()
+
 
