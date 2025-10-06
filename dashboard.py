@@ -1039,8 +1039,8 @@ else:
                         index=["user", "admin"].index(role),
                         key=f"role_{user_id}_{i}",
                         label_visibility="collapsed"
-                     )
-                     if new_role != role:
+                    )
+                    if new_role != role:
                         success = update_user_role(user_id, new_role)
                         if success:
                             st.success(f"Rôle de {email} mis à jour en {new_role}.")
@@ -1067,4 +1067,5 @@ else:
                             if success:
                                 st.warning(f"{email} est repassé en Free.")
                                 st.rerun()
+
 
