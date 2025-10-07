@@ -11,7 +11,6 @@ import os
 from supabase import create_client, Client
 from db import get_user_profile
 from db import check_expired_subscriptions
-from db import update_user_subscription
 
 # Vérifie les abonnements expirés à chaque lancement
 expired_count = check_expired_subscriptions()
@@ -195,6 +194,20 @@ def update_user_role(user_id, new_role):
     except Exception as e:
         st.error(f"Error updating role: {e}")
         return False
+def update_user_subscription(user_id):
+    """Upgrades a user to premium for 30 days."""
+    try:
+        from datetime import date, timedelta
+        expiry = date.today() + timedelta(days=30)
+        supabase.table('profiles').update({
+            'subscription_status': 'premium',
+            'expiry_date': str(expiry)
+        }).eq('id', user_id).execute()
+        return True
+    except Exception as e:
+        st.error(f"Error updating subscription: {e}")
+        return False
+
 # --- Initialisation de la mémoire ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "page" not in st.session_state: st.session_state.page = "Tableau de Bord"
@@ -1070,5 +1083,6 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
