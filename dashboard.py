@@ -186,7 +186,14 @@ def revert_to_free(user_id):
     except Exception as e:
         st.error(f"Erreur lors de la mise à jour du statut : {e}")
         return False  
-
+def update_user_role(user_id, new_role):
+    """Updates a user's role in the profiles table."""
+    try:
+        supabase.table('profiles').update({'role': new_role}).eq('id', user_id).execute()
+        return True
+    except Exception as e:
+        st.error(f"Error updating role: {e}")
+        return False
 # --- Initialisation de la mémoire ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "page" not in st.session_state: st.session_state.page = "Tableau de Bord"
@@ -1062,3 +1069,4 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
