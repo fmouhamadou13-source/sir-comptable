@@ -10,8 +10,19 @@ def init_supabase_connection():
     key = st.secrets["supabase"]["key"]
     return create_client(url, key)
 
-supabase: Client = init_supabase_connection()
+supabase = init_supabase_connection()
 
+def get_user_profile(user_id):
+    """Récupère toutes les infos du profil (rôle + abonnement)."""
+    try:
+        response = supabase.table("profiles").select("*").eq("id", user_id).execute()
+        if response.data:
+            return response.data[0]
+        else:
+            return {}
+    except Exception as e:
+        print(f"Erreur get_user_profile: {e}")
+        return {}
 # --- FONCTIONS D'AUTHENTIFICATION ---
 def signup(email, password):
     """Inscription + création automatique du profil."""
@@ -41,14 +52,6 @@ def login(email, password):
 
 
 # --- FONCTIONS DE GESTION DES PROFILS ---
-def get_user_profile(user_id):
-    """Récupère le profil complet d'un utilisateur."""
-    try:
-        data = supabase.table('profiles').select('*').eq('id', user_id).single().execute()
-        return data.data
-    except Exception:
-        return None
-
 
 def get_all_users():
     """Récupère tous les profils utilisateurs (pour l'admin)."""
