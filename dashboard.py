@@ -174,18 +174,7 @@ def get_all_users():
     except Exception as e:
         st.error(f"Erreur récupération utilisateurs : {e}")
         return []
-        
-def revert_to_free(user_id):
-    """Fait repasser un utilisateur au statut 'free'."""
-    try:
-        supabase.table("profiles").update({
-            "subscription_status": "free",
-            "expiry_date": None
-        }).eq("id", user_id).execute()
-        return True
-    except Exception as e:
-        st.error(f"Erreur lors de la mise à jour du statut : {e}")
-        return False  
+          
 def update_user_role(user_id, new_role):
     """Updates a user's role in the profiles table."""
     try:
@@ -194,6 +183,7 @@ def update_user_role(user_id, new_role):
     except Exception as e:
         st.error(f"Error updating role: {e}")
         return False
+        
 def update_user_subscription(user_id):
     """Upgrades a user to premium for 30 days."""
     try:
@@ -1083,6 +1073,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
