@@ -11,6 +11,7 @@ import os
 from supabase import create_client, Client
 from db import get_user_profile
 from db import check_expired_subscriptions
+from db import update_user_subscription
 
 # Vérifie les abonnements expirés à chaque lancement
 expired_count = check_expired_subscriptions()
@@ -1069,4 +1070,5 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
