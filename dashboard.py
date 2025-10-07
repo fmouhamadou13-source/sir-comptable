@@ -285,6 +285,7 @@ else:
     # --- LOGIQUE DE LA BARRE LATÉRALE MISE À JOUR ---
     with st.sidebar:
         st.write(f"Connecté en tant que : {st.session_state.user.email}")
+
         if st.button("Déconnexion"):
             supabase.auth.sign_out()
             st.session_state.logged_in = False
@@ -297,42 +298,66 @@ else:
             st.image(logo_image, width=180)
         except FileNotFoundError:
             st.error(_("logo_file_missing"))
+
         st.title("Sir Comptable")
         st.markdown("---")
-        # --- Logique de navigation principale ---
-        if st.button(_("sidebar_dashboard"), width="stretch"): st.session_state.page = "Tableau de Bord"
-        if st.button(_("sidebar_accounts"), width="stretch"): st.session_state.page = "Mes Comptes"
-        if st.button(_("sidebar_transactions"), width="stretch"): st.session_state.page = "Transactions"
-    
-        # --- Vérification d'accès centralisée ---
-        user_id = st.session_state.user.id
-        profile = get_user_profile(user_id) # Assurez-vous d'avoir une fonction get_user_profile
-        is_admin = str(profile.get('role', '')).lower() == 'admin'
-        is_premium = str(profile.get('subscription_status', '')).lower() == 'premium'
 
-        if st.button(_("sidebar_business"), width="stretch"):
+        # --- Récupération du profil utilisateur ---
+        user_id = st.session_state.user.id
+        profile = get_user_profile(user_id) if "user" in st.session_state and st.session_state.user else None
+
+        # --- Vérification des accès ---
+        user_email = (st.session_state.user.email or "").lower()
+        is_admin = (
+            (profile and str(profile.get("role", "")).lower() == "admin")
+            or user_email == "fmouhamadou13@gmail.com"
+        )
+
+        is_premium = (
+            (profile and str(profile.get("subscription_status", "")).lower() == "premium")
+            or is_admin  # les admins sont toujours premium
+        )
+
+        # --- Logique de navigation principale ---
+        if st.button(_("sidebar_dashboard"), use_container_width=True):
+            st.session_state.page = "Tableau de Bord"
+
+        if st.button(_("sidebar_accounts"), use_container_width=True):
+            st.session_state.page = "Mes Comptes"
+
+        if st.button(_("sidebar_transactions"), use_container_width=True):
+            st.session_state.page = "Transactions"
+
+        # --- Section Sir Business ---
+        if st.button(_("sidebar_business"), use_container_width=True):
             if is_admin or is_premium:
                 st.session_state.page = "Sir Business"
             else:
-                st.warning("Cette section est réservée aux abonnés Premium.")
+                st.warning("🚫 Cette section est réservée aux abonnés Premium.")
                 st.session_state.page = "Abonnement"
-        
-        if st.button(_("sidebar_reports"), width="stretch"):
+
+        # --- Section Rapports ---
+        if st.button(_("sidebar_reports"), use_container_width=True):
             if is_admin or is_premium:
                 st.session_state.page = "Rapports"
             else:
-                st.warning("Cette section est réservée aux abonnés Premium.")
+                st.warning("🚫 Cette section est réservée aux abonnés Premium.")
                 st.session_state.page = "Abonnement"
-        st.markdown("---")
-        if st.button(_("sidebar_subscribe"), width="stretch"): st.session_state.page = "Abonnement"
-        if st.button(_("sidebar_settings"), width="stretch"): st.session_state.page = "Paramètres"
 
-        # Affichage du panneau admin
+        st.markdown("---")
+
+        if st.button(_("sidebar_subscribe"), use_container_width=True):
+            st.session_state.page = "Abonnement"
+
+        if st.button(_("sidebar_settings"), use_container_width=True):
+            st.session_state.page = "Paramètres"
+
+        # --- Section Admin réservée ---
         if is_admin:
             st.markdown("---")
-            st.subheader("Administration")
-        if st.button("Panneau Admin"):
-            st.session_state.page = "Admin Panel"
+            st.subheader("⚙️ Administration")
+            if st.button("Panneau Admin", use_container_width=True):
+                st.session_state.page = "Admin Panel"
    
     # --- PAGE TABLEAU DE BORD (VERSION CORRIGÉE POUR LA FACTURATION) ---
     if st.session_state.page == "Tableau de Bord":
@@ -1071,6 +1096,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
