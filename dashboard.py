@@ -307,8 +307,8 @@ else:
         # --- Vérification d'accès centralisée ---
         user_id = st.session_state.user.id
         profile = get_user_profile(user_id) # Assurez-vous d'avoir une fonction get_user_profile
-        is_admin = profile and profile.get('role') == 'admin'
-        is_premium = profile and profile.get('subscription_status') == 'premium'
+        is_admin = str(profile.get('role', '')).lower() == 'admin'
+        is_premium = str(profile.get('subscription_status', '')).lower() == 'premium'
 
         if st.button(_("sidebar_business"), width="stretch"):
             if is_admin or is_premium:
@@ -1071,6 +1071,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
