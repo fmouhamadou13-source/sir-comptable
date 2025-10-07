@@ -1004,7 +1004,6 @@ else:
                 st.session_state.company_address = company_address
                 st.session_state.company_contact = company_contact
                 st.session_state.company_vat_rate = company_vat_rate
-                st.session_state.wave_link = wave_link # Save the link
                 st.success(_("settings_info_updated"))
     
         if st.session_state.company_logo:
@@ -1073,6 +1072,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
