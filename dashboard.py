@@ -991,8 +991,7 @@ else:
             company_address = st.text_area(_("settings_address"), value=st.session_state.company_address)
             company_contact = st.text_input(_("settings_contact"), value=st.session_state.company_contact)
             company_vat_rate = st.number_input(_("settings_vat_rate"), value=float(st.session_state.company_vat_rate), min_value=0.0, max_value=100.0, step=0.1, format="%.2f")
-            # --- NEW FIELD ADDED HERE ---
-            wave_link = st.text_input("Lien de paiement Wave", value=st.session_state.get('wave_link', ''))
+            
         
             submitted = st.form_submit_button(_("settings_save_info"))
             if submitted:
@@ -1072,6 +1071,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
