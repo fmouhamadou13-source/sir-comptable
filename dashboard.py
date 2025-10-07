@@ -1003,61 +1003,62 @@ else:
             st.write(_("settings_current_signature"))
             st.image(st.session_state.company_signature, width=150)
         
-    # --- PAGE ADMIN PANEL (AVEC LISTES DÉROULANTES) ---
-    elif st.session_state.page == "Admin Panel":
-        st.title("🔧 Panneau d'administration")
-        st.subheader("Gestion des utilisateurs et abonnements")
+    # --- PAGE ADMIN PANEL (VISIBLE UNIQUEMENT POUR TOI) ---
+    if st.session_state.page == "Admin Panel":
+        st.title("👑 Panneau d'administration")
 
-        all_users = get_all_profiles() # Assurez-vous d'utiliser get_all_profiles
+        # Vérifie que seul ton email accède à cette page
+        if st.session_state.user.email != "fmouhamadou13@gmail.com":
+            st.error("⛔ Accès refusé. Vous n'êtes pas autorisé à consulter cette page.")
+            st.stop()
 
-        if not all_users:
-            st.error("Aucun utilisateur trouvé dans la table 'profiles'.")
+        # Vérifie les abonnements expirés avant affichage
+        expired_count = check_expired_subscriptions()
+        if expired_count > 0:
+            st.info(f"{expired_count} abonnement(s) premium expiré(s) ont été repassé(s) en 'free'.")
+
+        users = get_all_users()
+
+        if not users:
+            st.warning("Aucun utilisateur trouvé.")
         else:
-            st.markdown("---")
-            # En-têtes
-            col1, col2, col3 = st.columns([2, 1, 1])
-            col1.write("**Email**")
-            col2.write("**Rôle**")
-            col3.write("**Abonnement**")
-            st.markdown("---")
+            st.subheader("Liste des utilisateurs")
 
-            changes_to_apply = {"roles": {}, "subscriptions": {}}
-
-            for i, user in enumerate(all_users):
-                user_id = user.get("id")
-                email = user.get("email", "non défini")
-                role = user.get("role", "user")
-                status = user.get("subscription_status", "free")
-
-                if role not in ["user", "admin"]: role = "user"
-                if status not in ["free", "premium"]: status = "free"
-
-                col1, col2, col3 = st.columns([2, 1, 1])
-
+            for user in users:
+                col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
                 with col1:
-                    st.write(email)
-            
+                    st.write(f"**{user['email']}**")
                 with col2:
-                    new_role = st.selectbox(" ", ["user", "admin"], index=["user", "admin"].index(role), key=f"role_{user_id}_{i}", label_visibility="collapsed")
-                    if new_role != role:
-                        changes_to_apply["roles"][user_id] = new_role
-            
+                    new_role = st.selectbox(
+                        "Rôle",
+                        ["user", "admin"],
+                        index=0 if user["role"] == "user" else 1,
+                        key=f"role_{user['email']}"
+                    )
                 with col3:
-                    new_status = st.selectbox(" ", ["free", "premium"], index=["free", "premium"].index(status), key=f"status_{user_id}_{i}", label_visibility="collapsed")
-                    if new_status != status:
-                        changes_to_apply["subscriptions"][user_id] = new_status
-        
-            st.markdown("---")
-            if st.button("Enregistrer les modifications"):
-                with st.spinner("Mise à jour en cours..."):
-                    for user_id, new_role in changes_to_apply["roles"].items():
-                        update_user_role(user_id, new_role)
-                    for user_id, new_status in changes_to_apply["subscriptions"].items():
-                        update_user_subscription(user_id, new_status)
-                st.success("Modifications enregistrées.")
-                st.rerun()
+                    new_status = st.selectbox(
+                        "Abonnement",
+                        ["free", "premium"],
+                        index=0 if user["subscription_status"] == "free" else 1,
+                        key=f"sub_{user['email']}"
+                    )
+                with col4:
+                    if st.button("Mettre à jour", key=f"update_{user['email']}"):
+                        try:
+                            # Récupération du user_id
+                            user_id_data = supabase.table("profiles").select("id").eq("email", user["email"]).execute()
+                            if not user_id_data.data:
+                                st.error("Utilisateur introuvable.")
+                            else:
+                                user_id = user_id_data.data[0]["id"]
 
+                                # Mise à jour du rôle
+                                update_user_role(user_id, new_role)
 
+                                # Mise à jour du statut d'abonnement
+                                update_user_subscription_status(user_id, new_status)
 
-
-
+                                st.success(f"✅ Profil de {user['email']} mis à jour avec succès.")
+                                st.rerun()
+                        except Exception as e:
+                            st.error(f"Erreur lors de la mise à jour : {e}")
