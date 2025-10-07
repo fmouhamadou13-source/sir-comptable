@@ -60,7 +60,7 @@ def get_all_users():
         return []
 
 
-ef update_user_role(user_id, new_role):
+def update_user_role(user_id, new_role):
     """Met à jour le rôle d'un utilisateur."""
     try:
         supabase.table('profiles').update({'role': new_role}).eq('id', user_id).execute()
