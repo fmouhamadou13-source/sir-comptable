@@ -17,12 +17,12 @@ from db import (
 def load_user_data(user_id):
     """Charge les données de l'utilisateur depuis la BDD vers st.session_state."""
     transactions_data = get_transactions(user_id)
-    # Convertit la liste de dictionnaires en DataFrame pandas
-    st.session_state.transactions = pd.DataFrame(transactions_data)
-    # Important : S'assurer que les colonnes 'Date' et 'Montant' ont le bon type
-    if not st.session_state.transactions.empty:
-        # --- BLOC DE CORRECTION À AJOUTER ---
-        # On renomme les colonnes de la BDD (minuscules) vers le format attendu par le dashboard (Majuscules)
+    
+    # Si la base de données renvoie des transactions...
+    if transactions_data:
+        st.session_state.transactions = pd.DataFrame(transactions_data)
+        
+        # On renomme les colonnes pour qu'elles correspondent au format du dashboard
         st.session_state.transactions.rename(columns={
             'date': 'Date',
             'type': 'Type',
@@ -30,8 +30,17 @@ def load_user_data(user_id):
             'categorie': 'Catégorie',
             'description': 'Description'
         }, inplace=True)
+
+        # On convertit les types de données
         st.session_state.transactions['Date'] = pd.to_datetime(st.session_state.transactions['Date'])
         st.session_state.transactions['Montant'] = pd.to_numeric(st.session_state.transactions['Montant'])
+    
+    # SINON (si l'utilisateur n'a aucune transaction)
+    else:
+        # On crée un DataFrame vide MAIS avec les bonnes colonnes
+        st.session_state.transactions = pd.DataFrame(columns=[
+            'Date', 'Type', 'Montant', 'Catégorie', 'Description'
+        ])
         
 # Vérifie les abonnements expirés à chaque lancement
 expired_count = check_expired_subscriptions()
@@ -1091,6 +1100,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
