@@ -2,16 +2,17 @@
 import streamlit as st
 import pandas as pd
 from PIL import Image
-from datetime import datetime, date
 import io
 import plotly.express as px
 from fpdf import FPDF
 import requests
 import os
 from supabase import create_client, Client
-from db import get_user_profile
+from db import supabase, load_session, save_session, clear_session, get_user_profile
+from datetime import date
 from db import check_expired_subscriptions
 
+st.set_page_config(page_title="Sir Comptable", page_icon="💼", layout="wide")
 # Vérifie les abonnements expirés à chaque lancement
 expired_count = check_expired_subscriptions()
 if expired_count > 0:
@@ -250,114 +251,114 @@ def add_transaction(transaction_date, trans_type, amount, category, description)
     new_data = pd.DataFrame([{"Date": pd.to_datetime(transaction_date), "Type": trans_type, "Montant": amount, "Catégorie": category, "Description": description}])
     st.session_state.transactions = pd.concat([st.session_state.transactions, new_data], ignore_index=True)
 
-# --- UPDATED LOGIN/SIGNUP PAGE ---
-if not st.session_state.get("logged_in"):
-    st.title("Sir Comptable")
-    choice = st.selectbox("Navigation", ["Login", "Sign Up"])
+# --- GESTION DE SESSION ---
+st.session_state.setdefault("user", None)
 
-    if choice == "Login":
-        with st.form("login_form"):
-            email = st.text_input("Email")
-            password = st.text_input("Password", type="password")
-            submitted = st.form_submit_button("Login")
-            if submitted:
-                response = login(email, password)
-                if response.user:
-                    st.session_state.logged_in = True
-                    st.session_state.user = response.user
-                    st.rerun()
-                else:
-                    st.error("Invalid login credentials.")
-    
-    elif choice == "Sign Up":
-        with st.form("signup_form"):
-            email = st.text_input("Email")
-            password = st.text_input("Password", type="password")
-            submitted = st.form_submit_button("Sign Up")
-            if submitted:
-                response = signup(email, password)
-                if response.user:
-                    st.success("Signup successful! Please check your email to confirm your account.")
-                else:
-                    st.error("Could not sign up. The user may already exist or the password may be too weak.")
-else:
-    
-    # --- LOGIQUE DE LA BARRE LATÉRALE MISE À JOUR ---
-    with st.sidebar:
-        st.write(f"Connecté en tant que : {st.session_state.user.email}")
+# Recharge la session sauvegardée (si l’utilisateur était déjà connecté)
+if st.session_state["user"] is None:
+    saved = load_session()
+    if saved:
+        st.session_state["user"] = saved
 
-        if st.button("Déconnexion"):
-            supabase.auth.sign_out()
-            st.session_state.logged_in = False
-            st.session_state.user = None
+# --- FONCTIONS D’AUTHENTIFICATION ---
+def login(email, password):
+    try:
+        user = supabase.auth.sign_in_with_password({"email": email, "password": password})
+        if user.user:
+            profile = get_user_profile(user.user.id)
+            session_data = {
+                "id": user.user.id,
+                "email": user.user.email,
+                "role": profile.get("role", "user"),
+                "subscription_status": profile.get("subscription_status", "free"),
+            }
+            st.session_state["user"] = session_data
+            save_session(session_data)
+            st.success("Connexion réussie ✅")
             st.rerun()
+        else:
+            st.error("Identifiants incorrects ❌")
+    except Exception as e:
+        st.error(f"Erreur : {e}")
 
-        st.markdown("---")
-        try:
-            logo_image = Image.open("logo sir comptable.jpg")
-            st.image(logo_image, width=180)
-        except FileNotFoundError:
-            st.error(_("logo_file_missing"))
+def logout():
+    clear_session()
+    st.session_state["user"] = None
+    st.success("Déconnexion réussie 👋")
+    st.rerun()
 
-        st.title("Sir Comptable")
-        st.markdown("---")
+# --- PAGE DE CONNEXION ---
+if not st.session_state["user"]:
+    st.title("🔐 Connexion à Sir Comptable")
+    email = st.text_input("Email")
+    password = st.text_input("Mot de passe", type="password")
+    if st.button("Se connecter"):
+        login(email, password)
+    st.stop()
 
-        # --- Récupération du profil utilisateur ---
-        user_id = st.session_state.user.id
-        profile = get_user_profile(user_id) if "user" in st.session_state and st.session_state.user else None
+# --- PAGE PRINCIPALE ---
+user = st.session_state["user"]
+st.sidebar.write(f"👤 Connecté en tant que : **{user['email']}**")
+st.sidebar.write(f"🎯 Rôle : {user['role']} | 💳 Abonnement : {user['subscription_status']}")
+if st.sidebar.button("Se déconnecter"):
+    logout()
 
-        # --- Vérification des accès ---
-        user_email = (st.session_state.user.email or "").lower()
-        is_admin = (
-            (profile and str(profile.get("role", "")).lower() == "admin")
-            or user_email == "fmouhamadou13@gmail.com"
-        )
+# --- MENU LATÉRAL ---
+selected_page = st.sidebar.radio("📚 Menu", ["Accueil", "Mes Comptes", "Sir Business", "Administration"])
 
-        is_premium = (
-            (profile and str(profile.get("subscription_status", "")).lower() == "premium")
-            or is_admin  # les admins sont toujours premium
-        )
+# --- ACCUEIL ---
+if selected_page == "Accueil":
+    st.header("💼 Tableau de bord - Sir Comptable")
+    st.info("Bienvenue dans votre espace comptable intelligent.")
 
-        # --- Logique de navigation principale ---
-        if st.button(_("sidebar_dashboard"), use_container_width=True):
-            st.session_state.page = "Tableau de Bord"
+# --- MES COMPTES ---
+elif selected_page == "Mes Comptes":
+    st.header("💰 Gestion des comptes")
+    from db import get_accounts, add_account
+    accounts = get_accounts(user["id"])
+    st.write("Vos comptes :", accounts)
+    st.subheader("➕ Ajouter un compte")
+    name = st.text_input("Nom du compte")
+    balance = st.number_input("Solde initial", min_value=0.0)
+    acc_type = st.selectbox("Type de compte", ["Épargne", "Courant", "Autre"])
+    if st.button("Enregistrer le compte"):
+        if add_account(user["id"], name, balance, acc_type):
+            st.success("Compte ajouté ✅")
+            st.rerun()
+        else:
+            st.error("Erreur lors de l’ajout du compte ❌")
 
-        if st.button(_("sidebar_accounts"), use_container_width=True):
-            st.session_state.page = "Mes Comptes"
+# --- SIR BUSINESS ---
+elif selected_page == "Sir Business":
+    if user["role"] in ["admin", "premium"]:
+        st.header("📊 Sir Business")
+        st.write("Interface professionnelle pour la gestion des ventes et achats.")
+        st.info("Module activé pour les comptes Premium ou Admin ✅")
+    else:
+        st.error("🚫 Accès réservé aux comptes Premium ou Admin.")
 
-        if st.button(_("sidebar_transactions"), use_container_width=True):
-            st.session_state.page = "Transactions"
+# --- ADMINISTRATION ---
+elif selected_page == "Administration":
+    if user["role"] != "admin":
+        st.error("Accès interdit 🚫")
+    else:
+        st.header("⚙️ Panneau Administrateur")
+        from db import get_all_users, update_user_role, update_user_subscription
 
-        # --- Section Sir Business ---
-        if st.button(_("sidebar_business"), use_container_width=True):
-            if is_admin or is_premium:
-                st.session_state.page = "Sir Business"
-            else:
-                st.warning("🚫 Cette section est réservée aux abonnés Premium.")
-                st.session_state.page = "Abonnement"
+        users = get_all_users()
+        st.dataframe(users)
 
-        # --- Section Rapports ---
-        if st.button(_("sidebar_reports"), use_container_width=True):
-            if is_admin or is_premium:
-                st.session_state.page = "Rapports"
-            else:
-                st.warning("🚫 Cette section est réservée aux abonnés Premium.")
-                st.session_state.page = "Abonnement"
-
-        st.markdown("---")
-
-        if st.button(_("sidebar_subscribe"), use_container_width=True):
-            st.session_state.page = "Abonnement"
-
-        if st.button(_("sidebar_settings"), use_container_width=True):
-            st.session_state.page = "Paramètres"
-
-        # --- Section Admin réservée ---
-        if is_admin:
-            st.markdown("---")
-            st.subheader("⚙️ Administration")
-            if st.button("Panneau Admin", use_container_width=True):
-                st.session_state.page = "Admin Panel"
+        selected_user = st.selectbox("Choisir un utilisateur", [u["email"] for u in users])
+        if selected_user:
+            user_data = next((u for u in users if u["email"] == selected_user), None)
+            if user_data:
+                new_role = st.selectbox("Nouveau rôle", ["user", "admin"], index=["user", "admin"].index(user_data["role"]))
+                new_status = st.selectbox("Abonnement", ["free", "premium"], index=["free", "premium"].index(user_data["subscription_status"]))
+                if st.button("Mettre à jour"):
+                    update_user_role(user_data["id"], new_role)
+                    update_user_subscription(user_data["id"], new_status)
+                    st.success("Utilisateur mis à jour ✅")
+                    st.rerun()
    
     # --- PAGE TABLEAU DE BORD (VERSION CORRIGÉE POUR LA FACTURATION) ---
     if st.session_state.page == "Tableau de Bord":
@@ -1096,16 +1097,5 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
-
-
-
-
-
-
-
-
-
-
-
 
 
