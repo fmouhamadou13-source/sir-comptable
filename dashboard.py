@@ -9,8 +9,21 @@ from fpdf import FPDF
 import requests
 import os
 from supabase import create_client, Client
-from db import get_user_profile, check_expired_subscriptions, login, signup, get_all_users, update_user_role, update_user_subscription
-
+from db import (
+    get_user_profile, check_expired_subscriptions, login, signup, 
+    get_all_users, update_user_role, update_user_subscription,
+    get_transactions, add_transaction_to_db
+)
+def load_user_data(user_id):
+    """Charge les données de l'utilisateur depuis la BDD vers st.session_state."""
+    transactions_data = get_transactions(user_id)
+    # Convertit la liste de dictionnaires en DataFrame pandas
+    st.session_state.transactions = pd.DataFrame(transactions_data)
+    # Important : S'assurer que les colonnes 'Date' et 'Montant' ont le bon type
+    if not st.session_state.transactions.empty:
+        st.session_state.transactions['Date'] = pd.to_datetime(st.session_state.transactions['Date'])
+        st.session_state.transactions['Montant'] = pd.to_numeric(st.session_state.transactions['Montant'])
+        
 # Vérifie les abonnements expirés à chaque lancement
 expired_count = check_expired_subscriptions()
 if expired_count > 0:
@@ -195,8 +208,29 @@ def convert_df_to_excel(df):
     return output.getvalue()
 
 def add_transaction(transaction_date, trans_type, amount, category, description):
-    new_data = pd.DataFrame([{"Date": pd.to_datetime(transaction_date), "Type": trans_type, "Montant": amount, "Catégorie": category, "Description": description}])
-    st.session_state.transactions = pd.concat([st.session_state.transactions, new_data], ignore_index=True)
+    # 1. Préparer la donnée pour la base de données
+    new_transaction_data = {
+        "date": str(transaction_date),
+        "type": trans_type,
+        "montant": amount,
+        "categorie": category,
+        "description": description
+    }
+    # 2. Envoyer à Supabase
+    user_id = st.session_state.user.id
+    success = add_transaction_to_db(user_id, new_transaction_data)
+
+    if success:
+        # 3. Mettre à jour l'affichage local (st.session_state) pour une réactivité immédiate
+        new_row_df = pd.DataFrame([{
+            "Date": pd.to_datetime(transaction_date), 
+            "Type": trans_type, 
+            "Montant": amount, 
+            "Catégorie": category, 
+            "Description": description
+        }])
+        st.session_state.transactions = pd.concat([st.session_state.transactions, new_row_df], ignore_index=True)
+    # (La gestion d'erreur est déjà dans la fonction de db.py)
 
 # --- UPDATED LOGIN/SIGNUP PAGE ---
 if not st.session_state.get("logged_in"):
@@ -228,8 +262,12 @@ if not st.session_state.get("logged_in"):
                     st.success("Signup successful! Please check your email to confirm your account.")
                 else:
                     st.error("Could not sign up. The user may already exist or the password may be too weak.")
+
 else:
-    
+    # On ajoute une vérification pour ne charger les données qu'une seule fois
+    if 'data_loaded' not in st.session_state:
+        load_user_data(st.session_state.user.id)
+        st.session_state.data_loaded = True
     # --- LOGIQUE DE LA BARRE LATÉRALE MISE À JOUR ---
     with st.sidebar:
         st.write(f"Connecté en tant que : {st.session_state.user.email}")
@@ -1044,5 +1082,6 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
