@@ -9,8 +9,7 @@ from fpdf import FPDF
 import requests
 import os
 from supabase import create_client, Client
-from db import get_user_profile
-from db import check_expired_subscriptions
+from db import get_user_profile, check_expired_subscriptions, login, signup, get_all_users, update_user_role, update_user_subscription
 
 # Vérifie les abonnements expirés à chaque lancement
 expired_count = check_expired_subscriptions()
@@ -146,57 +145,6 @@ def init_supabase_connection():
     return create_client(url, key)
 
 supabase: Client = init_supabase_connection()
-
-# --- NEW USER MANAGEMENT FUNCTIONS ---
-def signup(email, password):
-    return supabase.auth.sign_up({"email": email, "password": password})
-
-def login(email, password):
-    return supabase.auth.sign_in_with_password({"email": email, "password": password})
-
-def get_user_role(user_id):
-    """Retourne le rôle de l'utilisateur ou 'user' par défaut."""
-    try:
-        data = supabase.table('profiles').select('role').eq('id', user_id).execute()
-        if data.data and 'role' in data.data[0] and data.data[0]['role']:
-            return data.data[0]['role']
-        else:
-            return 'user'
-    except Exception as e:
-        print("Erreur get_user_role:", e)
-        return 'user'
-    
-def get_all_users():
-    """Récupère tous les utilisateurs avec leur rôle et abonnement."""
-    try:
-        data = supabase.table('profiles').select('email, role, subscription_status, expiry_date').execute()
-        return data.data
-    except Exception as e:
-        st.error(f"Erreur récupération utilisateurs : {e}")
-        return []
-          
-def update_user_role(user_id, new_role):
-    """Updates a user's role in the profiles table."""
-    try:
-        supabase.table('profiles').update({'role': new_role}).eq('id', user_id).execute()
-        return True
-    except Exception as e:
-        st.error(f"Error updating role: {e}")
-        return False
-        
-def update_user_subscription(user_id):
-    """Upgrades a user to premium for 30 days."""
-    try:
-        from datetime import date, timedelta
-        expiry = date.today() + timedelta(days=30)
-        supabase.table('profiles').update({
-            'subscription_status': 'premium',
-            'expiry_date': str(expiry)
-        }).eq('id', user_id).execute()
-        return True
-    except Exception as e:
-        st.error(f"Error updating subscription: {e}")
-        return False
 
 # --- Initialisation de la mémoire ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
@@ -1096,4 +1044,5 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
