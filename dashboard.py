@@ -21,6 +21,15 @@ def load_user_data(user_id):
     st.session_state.transactions = pd.DataFrame(transactions_data)
     # Important : S'assurer que les colonnes 'Date' et 'Montant' ont le bon type
     if not st.session_state.transactions.empty:
+        # --- BLOC DE CORRECTION À AJOUTER ---
+        # On renomme les colonnes de la BDD (minuscules) vers le format attendu par le dashboard (Majuscules)
+        st.session_state.transactions.rename(columns={
+            'date': 'Date',
+            'type': 'Type',
+            'montant': 'Montant',
+            'categorie': 'Catégorie',
+            'description': 'Description'
+        }, inplace=True)
         st.session_state.transactions['Date'] = pd.to_datetime(st.session_state.transactions['Date'])
         st.session_state.transactions['Montant'] = pd.to_numeric(st.session_state.transactions['Montant'])
         
@@ -1082,6 +1091,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
