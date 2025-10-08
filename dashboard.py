@@ -12,16 +12,6 @@ from supabase import create_client, Client
 from db import get_user_profile
 from db import check_expired_subscriptions
 
-from db import supabase
-
-def test_supabase_connexion():
-    try:
-        result = supabase.table("profiles").select("*").limit(1).execute()
-        st.success("Connexion Supabase OK ✅")
-        st.json(result.data)
-    except Exception as e:
-        st.error(f"Erreur Supabase ❌ : {e}")
-
 # Vérifie les abonnements expirés à chaque lancement
 expired_count = check_expired_subscriptions()
 if expired_count > 0:
@@ -1106,6 +1096,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
