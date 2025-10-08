@@ -13,33 +13,38 @@ from db import (
     get_user_profile, check_expired_subscriptions, login, signup, 
     get_all_users, update_user_role, update_user_subscription,
     get_transactions, add_transaction_to_db
+    get_accounts, add_account
 )
 def load_user_data(user_id):
-    """Charge les données de l'utilisateur depuis la BDD vers st.session_state."""
+    """Charge TOUTES les données de l'utilisateur depuis la BDD vers st.session_state."""
+    # --- CHARGEMENT DES TRANSACTIONS (déjà fait) ---
     transactions_data = get_transactions(user_id)
-    
-    # Si la base de données renvoie des transactions...
     if transactions_data:
         st.session_state.transactions = pd.DataFrame(transactions_data)
-        
-        # On renomme les colonnes pour qu'elles correspondent au format du dashboard
         st.session_state.transactions.rename(columns={
-            'date': 'Date',
-            'type': 'Type',
-            'montant': 'Montant',
-            'categorie': 'Catégorie',
-            'description': 'Description'
+            'date': 'Date', 'type': 'Type', 'montant': 'Montant',
+            'categorie': 'Catégorie', 'description': 'Description'
         }, inplace=True)
-
-        # On convertit les types de données
         st.session_state.transactions['Date'] = pd.to_datetime(st.session_state.transactions['Date'])
         st.session_state.transactions['Montant'] = pd.to_numeric(st.session_state.transactions['Montant'])
-    
-    # SINON (si l'utilisateur n'a aucune transaction)
     else:
-        # On crée un DataFrame vide MAIS avec les bonnes colonnes
         st.session_state.transactions = pd.DataFrame(columns=[
             'Date', 'Type', 'Montant', 'Catégorie', 'Description'
+        ])
+        
+    # --- NOUVEAU : CHARGEMENT DES COMPTES ---
+    accounts_data = get_accounts(user_id)
+    if accounts_data:
+        st.session_state.comptes = pd.DataFrame(accounts_data)
+        # Attention aux noms des colonnes, adaptez si besoin !
+        st.session_state.comptes.rename(columns={
+            'name': 'Nom du Compte',
+            'balance': 'Solde Actuel',
+            'type': 'Type'
+        }, inplace=True)
+    else:
+        st.session_state.comptes = pd.DataFrame(columns=[
+            'Nom du Compte', 'Solde Actuel', 'Type'
         ])
         
 # Vérifie les abonnements expirés à chaque lancement
@@ -560,11 +565,20 @@ else:
             
                 if st.form_submit_button(_("add_button")):
                     if nom_compte:
-                        new_account = pd.DataFrame([{"Nom du Compte": nom_compte, "Solde Actuel": solde_initial, "Type": type_compte}])
-                        st.session_state.comptes = pd.concat([st.session_state.comptes, new_account], ignore_index=True)
-                        add_transaction(date.today(), 'Revenu', solde_initial, 'Capital Initial', f"Création du compte '{nom_compte}'")
-                        st.success(_("account_added"))
-                        st.rerun()
+                        # 1. On appelle la fonction de db.py pour sauvegarder dans la base de données
+                        user_id = st.session_state.user.id
+                        success = add_account(user_id, nom_compte, solde_initial, type_compte)
+
+                        if success:
+                            # 2. Si la sauvegarde a réussi, on met à jour l'affichage et on ajoute la transaction initiale
+                            new_account_df = pd.DataFrame([{"Nom du Compte": nom_compte, "Solde Actuel": solde_initial, "Type": type_compte}])
+                            st.session_state.comptes = pd.concat([st.session_state.comptes, new_account_df], ignore_index=True)
+            
+                            add_transaction(date.today(), 'Revenu', solde_initial, 'Capital Initial', f"Création du compte '{nom_compte}'")
+                            st.success(_("account_added"))
+                            st.rerun()
+                        else:
+                            st.error("Erreur lors de l'ajout du compte à la base de données.")
                     else:
                         st.error("Le nom du compte ne peut pas être vide.")
     # --- PAGE TRANSACTIONS ---
@@ -1100,6 +1114,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
