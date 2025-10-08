@@ -97,7 +97,28 @@ def revert_to_free(user_id):
     except Exception as e:
         st.error(f"Erreur retour à Free : {e}")
         return False
+        
+# --- FONCTIONS DE GESTION DES TRANSACTIONS ---
 
+def get_transactions(user_id):
+    """Récupère toutes les transactions pour un utilisateur donné."""
+    try:
+        response = supabase.table('transactions').select('*').eq('user_id', user_id).order('date', desc=True).execute()
+        return response.data
+    except Exception as e:
+        st.error(f"Erreur lors de la récupération des transactions : {e}")
+        return []
+
+def add_transaction_to_db(user_id, data):
+    """Ajoute une seule transaction à la base de données."""
+    try:
+        # On s'assure que user_id est bien dans les données à insérer
+        data['user_id'] = user_id
+        supabase.table('transactions').insert(data).execute()
+        return True
+    except Exception as e:
+        st.error(f"Erreur lors de l'ajout de la transaction : {e}")
+        return False
 # --- Vérification automatique des abonnements expirés ---
 def check_expired_subscriptions():
     """
