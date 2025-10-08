@@ -4,7 +4,7 @@ import streamlit as st
 from supabase import create_client, Client
 
 # --- CONNEXION SUPABASE ---
-@st.cache_resource
+st.cache_resource.clear()
 def init_supabase_connection():
     url = st.secrets["supabase"]["url"]
     key = st.secrets["supabase"]["key"]
