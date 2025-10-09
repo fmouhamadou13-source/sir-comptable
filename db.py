@@ -15,8 +15,8 @@ supabase = init_supabase_connection()
 @st.cache_resource
 def init_supabase_admin_connection():
     url = st.secrets["supabase"]["url"]
-    service_key = st.secrets["supabase"]["service_key"]
-    return create_client(url, service_key)
+    service_key = st.secrets["supabase"]["key"]
+    return create_client(url, key)
 
 supabase_admin = init_supabase_admin_connection()
 
