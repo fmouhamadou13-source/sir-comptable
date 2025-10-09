@@ -11,6 +11,14 @@ def init_supabase_connection():
     return create_client(url, key)
 
 supabase = init_supabase_connection()
+# --- NOUVEAU : CONNEXION ADMIN (ignore les RLS) ---
+@st.cache_resource
+def init_supabase_admin_connection():
+    url = st.secrets["supabase"]["url"]
+    service_key = st.secrets["supabase"]["service_key"]
+    return create_client(url, service_key)
+
+supabase_admin = init_supabase_admin_connection()
 
 def get_user_profile(user_id):
     """Récupère toutes les infos du profil (rôle + abonnement)."""
@@ -119,26 +127,28 @@ def add_transaction_to_db(user_id, data):
     except Exception as e:
         st.error(f"Erreur lors de l'ajout de la transaction : {e}")
         return False
-# --- Vérification automatique des abonnements expirés ---
+# --- MODIFICATION DE LA FONCTION CHECK_EXPIRED_SUBSCRIPTIONS ---
 def check_expired_subscriptions():
     """
     Vérifie les abonnements premium expirés et les repasse en 'free'.
-    Peut être appelée au démarrage ou via un cron externe.
     """
     try:
-        data = supabase.table('profiles').select('id, expiry_date, subscription_status').eq('subscription_status', 'premium').execute()
-        if not data.data:
-            return 0  # aucun compte premium
+        # ON UTILISE LE CLIENT ADMIN ICI
+        response = supabase_admin.table('profiles').select('id, expiry_date, subscription_status').eq('subscription_status', 'premium').execute()
+        
+        if not response.data:
+            return 0
 
         today = date.today()
         expired_users = [
             user['id']
-            for user in data.data
+            for user in response.data
             if user.get('expiry_date') and date.fromisoformat(user['expiry_date']) < today
         ]
 
         for user_id in expired_users:
-            supabase.table('profiles').update({
+            # ON UTILISE AUSSI LE CLIENT ADMIN POUR METTRE À JOUR
+            supabase_admin.table('profiles').update({
                 'subscription_status': 'free',
                 'expiry_date': None
             }).eq('id', user_id).execute()
@@ -146,9 +156,9 @@ def check_expired_subscriptions():
         return len(expired_users)
 
     except Exception as e:
-        st.warning(f"Erreur lors de la vérification des abonnements : {e}")
+        # On affiche l'erreur dans la console de Streamlit pour le débogage
+        print(f"Erreur lors de la vérification des abonnements : {e}")
         return 0
-
 
 # --- FONCTIONS DE GESTION DES DONNÉES (CRUD) ---
 def get_accounts(user_id):
