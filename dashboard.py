@@ -522,6 +522,7 @@ else:
     # --- PAGE MES COMPTES ---
     elif st.session_state.page == "Mes Comptes":
         st.title(_("accounts_title"))
+        st.info(f"DEBUG (ID en session) : {st.session_state.user.id}")
         st.markdown(_("accounts_description"))
         st.subheader(_("accounts_list"))
     
@@ -567,6 +568,7 @@ else:
                     if nom_compte:
                         # 1. On appelle la fonction de db.py pour sauvegarder dans la base de données
                         user_id = st.session_state.user.id
+                        st.warning(f"DEBUG (ID envoyé) : {user_id}")
                         success = add_account(user_id, nom_compte, solde_initial, type_compte)
 
                         if success:
@@ -1114,6 +1116,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
