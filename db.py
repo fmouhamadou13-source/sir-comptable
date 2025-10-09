@@ -169,6 +169,7 @@ def get_accounts(user_id):
     except Exception:
         return []
 
+# db.py
 
 def add_account(user_id, name, balance, account_type):
     """Ajoute un nouveau compte financier."""
@@ -180,5 +181,8 @@ def add_account(user_id, name, balance, account_type):
             'type': account_type
         }).execute()
         return True
-    except Exception:
+    except Exception as e:
+        # CETTE LIGNE EST LA PLUS IMPORTANTE !
+        # Elle affichera l'erreur technique exacte dans l'application.
+        st.error(f"DÉTAIL DE L'ERREUR SUPABASE : {e}") 
         return False
