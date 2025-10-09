@@ -281,11 +281,13 @@ if not st.session_state.get("logged_in"):
             submitted = st.form_submit_button("Sign Up")
             if submitted:
                 response = signup(email, password)
-                if response.user:
+                # LE CODE CORRIGÉ
+                if response.get("success"):
                     st.success("Signup successful! Please check your email to confirm your account.")
                 else:
-                    st.error("Could not sign up. The user may already exist or the password may be too weak.")
-
+                    # On peut même afficher l'erreur précise renvoyée par la fonction
+                    error_message = response.get("error", "Could not sign up. The user may already exist or the password may be too weak.")
+                    st.error(error_message)
 else:
     # On ajoute une vérification pour ne charger les données qu'une seule fois
     if 'data_loaded' not in st.session_state:
@@ -1116,6 +1118,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
