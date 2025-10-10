@@ -1029,8 +1029,8 @@ else:
                     # Maintenant, on peut comparer deux dates qui "parlent la même langue"
                 df_filtered = df_filtered[df_filtered['Date'].dt.date.between(start_date.date(), end_date.date())]
 
-        st.markdown("---")
-        st.subheader(f"Résultats pour : {periode}") # Text should be translated
+st.markdown("---")
+st.subheader(f"Résultats pour : {periode}") # Text should be translated
         if df_filtered.empty:
             st.warning("Aucune donnée à afficher pour la période sélectionnée.") # Text should be translated
         else:
@@ -1165,6 +1165,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
