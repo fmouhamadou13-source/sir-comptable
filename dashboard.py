@@ -1010,10 +1010,10 @@ else:
                 current_quarter = (today.month - 1) // 3 + 1
                 start_month = (current_quarter - 1) * 3 + 1
                 start_date = today.replace(month=start_month, day=1)
-            elif periode == "Semestre en cours":
+    elif periode == "Semestre en cours":
                 start_month = 1 if today.month <= 6 else 7
                 start_date = today.replace(month=start_month, day=1)
-            elif periode == "Année en cours": start_date = today.replace(month=1, day=1)
+    elif periode == "Année en cours": start_date = today.replace(month=1, day=1)
             else:
                 try:
                     month_number = [date(2000, m, 1).strftime('%B') for m in range(1, 13)].index(periode) + 1
@@ -1171,6 +1171,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
