@@ -984,55 +984,73 @@ else:
                             st.session_state.bp_step = 0
                             st.session_state.bp_data = {}
                             st.rerun()
-    # --- PAGE RAPPORTS ---
+    # --- PAGE RAPPORTS --- 
     elif st.session_state.page == "Rapports":
-        st.title("Rapports Financiers") # Title should be translated
-        st.markdown("Analysez vos performances avec des rapports personnalisés.") # Desc should be translated
+        st.title("Rapports Financiers")
+        st.markdown("Analysez vos performances avec des rapports personnalisés.")
 
-        st.subheader("Filtres") # Subheader should be translated
+        # --- Section des Filtres ---
+        st.subheader("Filtres")
         col1, col2 = st.columns(2)
         with col1:
             type_donnees = st.selectbox("Type de données", ["Dépenses et Revenus", "Dépenses seulement", "Revenus seulement"])
         with col2:
-            # This part needs to be made dynamic based on language
-            period_options = ["Année en cours", "Semestre en cours", "Trimestre en cours", "Mois en cours"] + [date(2024, m, 1).strftime('%B') for m in range(1, 13)]
+            # Note: Cette liste de mois est en anglais. Pour une app multilingue, il faudrait l'adapter.
+            period_options = ["Année en cours", "Semestre en cours", "Trimestre en cours", "Mois en cours"] + [date(2000, m, 1).strftime('%B') for m in range(1, 13)]
             periode = st.selectbox("Période", period_options)
 
+        st.markdown("---")
+
+        # --- Logique de Filtrage ---
         df_filtered = st.session_state.transactions.copy()
+
         if not df_filtered.empty:
-            # On s'assure que la colonne Date est propre et en UTC.
+            # Étape 1: On standardise la colonne 'Date' en UTC pour éviter les erreurs de timezone. C'est la correction la plus importante.
             df_filtered['Date'] = pd.to_datetime(df_filtered['Date'], utc=True)
-    
-    today = datetime.utcnow().date() # On utilise une date naive pour les calculs simples
-    start_date, end_date = None, today
-    if periode == "Mois en cours": start_date = today.replace(day=1)
-    elif periode == "Trimestre en cours":
+
+            # Étape 2: On définit les dates de début et de fin pour le filtre
+            today = datetime.utcnow().date()
+            start_date, end_date = None, today
+
+            if periode == "Mois en cours":
+                start_date = today.replace(day=1)
+            elif periode == "Trimestre en cours":
                 current_quarter = (today.month - 1) // 3 + 1
                 start_month = (current_quarter - 1) * 3 + 1
                 start_date = today.replace(month=start_month, day=1)
-    elif periode == "Semestre en cours":
+            elif periode == "Semestre en cours":
                 start_month = 1 if today.month <= 6 else 7
                 start_date = today.replace(month=start_month, day=1)
-    elif periode == "Année en cours": start_date = today.replace(month=1, day=1)
-    else:
+            elif periode == "Année en cours":
+                start_date = today.replace(month=1, day=1)
+            else:
+                # Gère le cas où un nom de mois est sélectionné
                 try:
-                    month_number = [date(2000, m, 1).strftime('%B') for m in range(1, 13)].index(periode) + 1
+                   # Convertit le nom du mois en numéro de mois
+                    month_number = period_options.index(periode) - 3 # Ajustement pour la liste
+                    current_year = today.year
                     df_filtered = df_filtered[df_filtered['Date'].dt.month == month_number]
-                except ValueError: pass
+                    # On réinitialise start_date car le filtre par mois est déjà appliqué
+                    start_date = None
+                except (ValueError, IndexError):
+                    pass # Ne fait rien si la période n'est pas un mois
         
-            # LE NOUVEAU CODE
-    if start_date:
-                # On convertit les bornes en datetime pour la comparaison
-                start_date = pd.to_datetime(start_date)
-                end_date = pd.to_datetime(end_date)
+            # Étape 3: On applique le filtre de plage de dates (si applicable)
+            if start_date:
+                start_date_aware = pd.to_datetime(start_date).tz_localize('UTC')
+                end_date_aware = pd.to_datetime(end_date).tz_localize('UTC').replace(hour=23, minute=59, second=59)
+                df_filtered = df_filtered[df_filtered['Date'].between(start_date_aware, end_date_aware)]
+        
+            # Étape 4: On applique le filtre par type de données
+            if type_donnees == "Dépenses seulement":
+                df_filtered = df_filtered[df_filtered['Type'] == 'Dépense']
+            elif type_donnees == "Revenus seulement":
+                df_filtered = df_filtered[df_filtered['Type'] == 'Revenu']
 
-                    # Maintenant, on peut comparer deux dates qui "parlent la même langue"
-                df_filtered = df_filtered[df_filtered['Date'].dt.date.between(start_date.date(), end_date.date())]
-
-st.markdown("---")
-st.subheader(f"Résultats pour : {periode}") # Text should be translated
+        # --- Affichage des Résultats ---
+        st.subheader(f"Résultats pour : {periode}")
         if df_filtered.empty:
-            st.warning("Aucune donnée à afficher pour la période sélectionnée.") # Text should be translated
+            st.warning("Aucune donnée à afficher pour les filtres sélectionnés.")
         else:
             st.dataframe(df_filtered, use_container_width=True)
     # --- PAGE ABONNEMENT ---
@@ -1165,6 +1183,7 @@ st.subheader(f"Résultats pour : {periode}") # Text should be translated
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
