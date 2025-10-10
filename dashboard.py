@@ -456,7 +456,15 @@ else:
             st.subheader(_("monthly_evolution"))
             if not st.session_state.transactions.empty:
                 df_copy = st.session_state.transactions.copy()
+        
+                # On s'assure que la colonne 'Date' est bien de type datetime AVANT d'utiliser .dt
+                df_copy['Date'] = pd.to_datetime(df_copy['Date'])
+        
+                # Cette ligne fonctionnera maintenant sans erreur
                 df_copy['Mois'] = df_copy['Date'].dt.to_period('M')
+        
+                monthly_summary = df_copy.groupby(['Mois', 'Type'])['Montant'].sum().unstack(fill_value=0).reset_index()
+                monthly_summary['Mois'] = monthly_summary['Mois'].astype(str)
             
                 monthly_summary = df_copy.groupby(['Mois', 'Type'])['Montant'].sum().unstack(fill_value=0).reset_index()
                 monthly_summary['Mois'] = monthly_summary['Mois'].astype(str)
@@ -1156,6 +1164,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
