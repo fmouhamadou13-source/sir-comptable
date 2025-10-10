@@ -13,7 +13,9 @@ from db import (
     get_user_profile, check_expired_subscriptions, login, signup, 
     get_all_users, update_user_role, update_user_subscription,
     get_transactions, add_transaction_to_db,
-    get_accounts, add_account
+    get_accounts, add_account,
+    get_accounts, add_account,
+    get_employees, add_employee
 )
 # dashboard.py
 
@@ -37,20 +39,6 @@ def load_user_data(user_id):
             'Date', 'Type', 'Montant', 'Catégorie', 'Description'
         ])
         
-    # --- CHARGEMENT DES COMPTES ---
-    accounts_data = get_accounts(user_id)
-    if accounts_data:
-        st.session_state.comptes = pd.DataFrame(accounts_data)
-        st.session_state.comptes.rename(columns={
-            'name': 'Nom du Compte',
-            'balance': 'Solde Actuel',
-            'type': 'Type'
-        }, inplace=True)
-    else:
-        st.session_state.comptes = pd.DataFrame(columns=[
-            'Nom du Compte', 'Solde Actuel', 'Type'
-        ])
-        
     # --- NOUVEAU : CHARGEMENT DES COMPTES ---
     accounts_data = get_accounts(user_id)
     if accounts_data:
@@ -64,6 +52,20 @@ def load_user_data(user_id):
     else:
         st.session_state.comptes = pd.DataFrame(columns=[
             'Nom du Compte', 'Solde Actuel', 'Type'
+        ])
+    # --- CHARGEMENT DES SALAIRES ---
+    employees_data = get_employees(user_id)
+    if employees_data:
+        st.session_state.salaries = pd.DataFrame(employees_data)
+        # On renomme les colonnes pour correspondre à l'affichage
+        st.session_state.salaries.rename(columns={
+            'nom_employe': "Nom de l'employé",
+            'poste': 'Poste',
+            'salaire_brut': 'Salaire Brut'
+        }, inplace=True)
+    else:
+        st.session_state.salaries = pd.DataFrame(columns=[
+            "Nom de l'employé", 'Poste', 'Salaire Brut'
         ])
         
 # Vérifie les abonnements expirés à chaque lancement
@@ -830,9 +832,17 @@ else:
                     poste_employe = st.text_input("Poste occupé")
                     salaire_brut = st.number_input(f"Salaire Brut Mensuel ({st.session_state.currency})", min_value=0.0)
                     if st.form_submit_button("Ajouter"):
-                        new_employee = pd.DataFrame([{"Nom de l'employé": nom_employe, "Poste": poste_employe, "Salaire Brut": salaire_brut}])
-                        st.session_state.salaries = pd.concat([st.session_state.salaries, new_employee], ignore_index=True)
-                        st.success(f"{nom_employe} a été ajouté.")
+                        user_id = st.session_state.user.id
+                        # On sauvegarde dans la base de données
+                        success = add_employee(user_id, nom_employe, poste_employe, salaire_brut)
+
+                        if success:
+                            # On met à jour l'affichage local
+                            new_employee_df = pd.DataFrame([{"Nom de l'employé": nom_employe, "Poste": poste_employe, "Salaire Brut": salaire_brut}])
+                            st.session_state.salaries = pd.concat([st.session_state.salaries, new_employee_df], ignore_index=True)
+                            st.success(f"{nom_employe} a été ajouté.")
+                            st.rerun()
+                        # L'erreur est déjà gérée par la fonction dans db.py
         
             st.subheader("Liste des Salaires")
             if not st.session_state.salaries.empty:
@@ -1136,6 +1146,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
