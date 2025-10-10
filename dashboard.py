@@ -252,29 +252,37 @@ def convert_df_to_excel(df):
     return output.getvalue()
 
 def add_transaction(transaction_date, trans_type, amount, category, description):
-    # 1. Préparer la donnée pour la base de données
+    # Prépare les données pour la base de données
     new_transaction_data = {
         "date": str(transaction_date),
         "type": trans_type,
-        "amount": amount,
+        "montant": amount,
         "category": category,
         "description": description
     }
-    # 2. Envoyer à Supabase
+    
+    # Envoie à Supabase
     user_id = st.session_state.user.id
     success = add_transaction_to_db(user_id, new_transaction_data)
 
+    # Met à jour l'affichage local si la sauvegarde a réussi
     if success:
-        # 3. Mettre à jour l'affichage local (st.session_state) pour une réactivité immédiate
+        # --- LA CORRECTION EST ICI ---
+        # On s'assure que la nouvelle date a bien un fuseau horaire (UTC)
+        # pour correspondre aux données chargées depuis la BDD.
+        aware_date = pd.to_datetime(transaction_date).tz_localize('UTC')
+        
         new_row_df = pd.DataFrame([{
-            "Date": pd.to_datetime(transaction_date), 
+            "Date": aware_date, # On utilise la nouvelle date "aware"
             "Type": trans_type, 
             "Montant": amount, 
             "Catégorie": category, 
             "Description": description
         }])
         st.session_state.transactions = pd.concat([st.session_state.transactions, new_row_df], ignore_index=True)
-    # (La gestion d'erreur est déjà dans la fonction de db.py)
+        return True
+    
+    return False
 
 # --- UPDATED LOGIN/SIGNUP PAGE ---
 if not st.session_state.get("logged_in"):
@@ -1164,6 +1172,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
