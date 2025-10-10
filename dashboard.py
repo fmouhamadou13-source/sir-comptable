@@ -1027,13 +1027,13 @@ else:
                 end_date = pd.to_datetime(end_date)
 
                     # Maintenant, on peut comparer deux dates qui "parlent la même langue"
-                    df_filtered = df_filtered[df_filtered['Date'].dt.date.between(start_date.date(), end_date.date())]
+        df_filtered = df_filtered[df_filtered['Date'].dt.date.between(start_date.date(), end_date.date())]
     
                 except Exception as e:
                     st.error(f"Erreur lors du filtrage des dates : {e}")
         
-            if type_donnees == "Dépenses seulement": df_filtered = df_filtered[df_filtered['Type'] == 'Dépense']
-            elif type_donnees == "Revenus seulement": df_filtered = df_filtered[df_filtered['Type'] == 'Revenu']
+    if type_donnees == "Dépenses seulement": df_filtered = df_filtered[df_filtered['Type'] == 'Dépense']
+    elif type_donnees == "Revenus seulement": df_filtered = df_filtered[df_filtered['Type'] == 'Revenu']
 
         st.markdown("---")
         st.subheader(f"Résultats pour : {periode}") # Text should be translated
@@ -1171,6 +1171,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
