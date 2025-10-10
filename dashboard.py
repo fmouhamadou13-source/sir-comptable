@@ -543,7 +543,6 @@ else:
     # --- PAGE MES COMPTES ---
     elif st.session_state.page == "Mes Comptes":
         st.title(_("accounts_title"))
-        st.info(f"DEBUG (ID en session) : {st.session_state.user.id}")
         st.markdown(_("accounts_description"))
         st.subheader(_("accounts_list"))
     
@@ -1137,6 +1136,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
