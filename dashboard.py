@@ -465,10 +465,7 @@ else:
             if not st.session_state.transactions.empty:
                 df_copy = st.session_state.transactions.copy()
         
-                # On s'assure que la colonne 'Date' est bien de type datetime AVANT d'utiliser .dt
-                df_copy['Date'] = pd.to_datetime(df_copy['Date'])
-        
-                # Cette ligne fonctionnera maintenant sans erreur
+                df_copy['Date'] = pd.to_datetime(df_copy['Date'], utc=True)
                 df_copy['Mois'] = df_copy['Date'].dt.to_period('M')
         
                 monthly_summary = df_copy.groupby(['Mois', 'Type'])['Montant'].sum().unstack(fill_value=0).reset_index()
@@ -1003,8 +1000,11 @@ else:
 
         df_filtered = st.session_state.transactions.copy()
         if not df_filtered.empty:
-            today = date.today()
-            start_date, end_date = None, today
+            # On s'assure que la colonne Date est propre et en UTC.
+            df_filtered['Date'] = pd.to_datetime(df_filtered['Date'], utc=True)
+    
+    today = datetime.utcnow().date() # On utilise une date naive pour les calculs simples
+    start_date, end_date = None, today
             if periode == "Mois en cours": start_date = today.replace(day=1)
             elif periode == "Trimestre en cours":
                 current_quarter = (today.month - 1) // 3 + 1
@@ -1021,14 +1021,13 @@ else:
                 except ValueError: pass
         
             # LE NOUVEAU CODE
-            if start_date and not df_filtered.empty:
-                try:
-                    # On convertit les dates de début et de fin en dates "aware" (avec fuseau horaire UTC)
-                    start_date_aware = pd.to_datetime(start_date).tz_localize('UTC')
-                    end_date_aware = pd.to_datetime(end_date).tz_localize('UTC')
+            if start_date:
+                # On convertit les bornes en datetime pour la comparaison
+                start_date = pd.to_datetime(start_date)
+                end_date = pd.to_datetime(end_date)
 
                     # Maintenant, on peut comparer deux dates qui "parlent la même langue"
-                    df_filtered = df_filtered[(df_filtered['Date'] >= start_date_aware) & (df_filtered['Date'] <= end_date_aware)]
+                    df_filtered = df_filtered[df_filtered['Date'].dt.date.between(start_date.date(), end_date.date())]
     
                 except Exception as e:
                     st.error(f"Erreur lors du filtrage des dates : {e}")
@@ -1172,6 +1171,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
