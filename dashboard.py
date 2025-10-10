@@ -1014,7 +1014,7 @@ else:
                 start_month = 1 if today.month <= 6 else 7
                 start_date = today.replace(month=start_month, day=1)
     elif periode == "Année en cours": start_date = today.replace(month=1, day=1)
-            else:
+    else:
                 try:
                     month_number = [date(2000, m, 1).strftime('%B') for m in range(1, 13)].index(periode) + 1
                     df_filtered = df_filtered[df_filtered['Date'].dt.month == month_number]
@@ -1171,6 +1171,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
