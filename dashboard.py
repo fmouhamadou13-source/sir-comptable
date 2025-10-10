@@ -1004,8 +1004,18 @@ else:
                     df_filtered = df_filtered[df_filtered['Date'].dt.month == month_number]
                 except ValueError: pass
         
-            if start_date:
-                df_filtered = df_filtered[(df_filtered['Date'] >= pd.to_datetime(start_date)) & (df_filtered['Date'] <= pd.to_datetime(end_date))]
+            # LE NOUVEAU CODE
+            if start_date and not df_filtered.empty:
+                try:
+                    # On convertit les dates de début et de fin en dates "aware" (avec fuseau horaire UTC)
+                    start_date_aware = pd.to_datetime(start_date).tz_localize('UTC')
+                    end_date_aware = pd.to_datetime(end_date).tz_localize('UTC')
+
+                    # Maintenant, on peut comparer deux dates qui "parlent la même langue"
+                    df_filtered = df_filtered[(df_filtered['Date'] >= start_date_aware) & (df_filtered['Date'] <= end_date_aware)]
+    
+                except Exception as e:
+                    st.error(f"Erreur lors du filtrage des dates : {e}")
         
             if type_donnees == "Dépenses seulement": df_filtered = df_filtered[df_filtered['Type'] == 'Dépense']
             elif type_donnees == "Revenus seulement": df_filtered = df_filtered[df_filtered['Type'] == 'Revenu']
@@ -1146,6 +1156,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
