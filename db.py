@@ -191,7 +191,8 @@ def add_account(user_id, name, balance, account_type):
 def get_employees(user_id):
     """Récupère tous les employés d'un utilisateur."""
     try:
-        response = supabase.table('employees').select('*').eq('user_id', user_id).execute()
+        # CORRECTION : Utilisation de 'Employees' avec une majuscule
+        response = supabase.table('Employees').select('*').eq('user_id', user_id).execute()
         return response.data
     except Exception as e:
         st.error(f"Erreur DB (get_employees): {e}")
@@ -200,7 +201,8 @@ def get_employees(user_id):
 def add_employee(user_id, nom, poste, salaire):
     """Ajoute un nouvel employé à la base de données."""
     try:
-        supabase.table('employees').insert({
+        # CORRECTION : Utilisation de 'Employees' avec une majuscule
+        supabase.table('Employees').insert({
             'user_id': user_id,
             'nom_employe': nom,
             'poste': poste,
