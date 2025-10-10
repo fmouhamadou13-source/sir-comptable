@@ -15,21 +15,40 @@ from db import (
     get_transactions, add_transaction_to_db,
     get_accounts, add_account
 )
+# dashboard.py
+
 def load_user_data(user_id):
     """Charge TOUTES les données de l'utilisateur depuis la BDD vers st.session_state."""
-    # --- CHARGEMENT DES TRANSACTIONS (déjà fait) ---
+    # --- CHARGEMENT DES TRANSACTIONS ---
     transactions_data = get_transactions(user_id)
     if transactions_data:
         st.session_state.transactions = pd.DataFrame(transactions_data)
         st.session_state.transactions.rename(columns={
-            'date': 'Date', 'type': 'Type', 'montant': 'Montant',
-            'categorie': 'Catégorie', 'description': 'Description'
+            'date': 'Date',
+            'type': 'Type',
+            'amount': 'Montant',      # <-- CORRECTION N°1
+            'category': 'Catégorie',   # <-- CORRECTION N°2
+            'description': 'Description'
         }, inplace=True)
         st.session_state.transactions['Date'] = pd.to_datetime(st.session_state.transactions['Date'])
         st.session_state.transactions['Montant'] = pd.to_numeric(st.session_state.transactions['Montant'])
     else:
         st.session_state.transactions = pd.DataFrame(columns=[
             'Date', 'Type', 'Montant', 'Catégorie', 'Description'
+        ])
+        
+    # --- CHARGEMENT DES COMPTES ---
+    accounts_data = get_accounts(user_id)
+    if accounts_data:
+        st.session_state.comptes = pd.DataFrame(accounts_data)
+        st.session_state.comptes.rename(columns={
+            'name': 'Nom du Compte',
+            'balance': 'Solde Actuel',
+            'type': 'Type'
+        }, inplace=True)
+    else:
+        st.session_state.comptes = pd.DataFrame(columns=[
+            'Nom du Compte', 'Solde Actuel', 'Type'
         ])
         
     # --- NOUVEAU : CHARGEMENT DES COMPTES ---
@@ -1118,6 +1137,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
