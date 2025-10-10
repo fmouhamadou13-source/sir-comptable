@@ -1021,7 +1021,7 @@ else:
                 except ValueError: pass
         
             # LE NOUVEAU CODE
-            if start_date:
+    if start_date:
                 # On convertit les bornes en datetime pour la comparaison
                 start_date = pd.to_datetime(start_date)
                 end_date = pd.to_datetime(end_date)
@@ -1171,6 +1171,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
