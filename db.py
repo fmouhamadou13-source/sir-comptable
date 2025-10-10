@@ -186,3 +186,27 @@ def add_account(user_id, name, balance, account_type):
         # Elle affichera l'erreur technique exacte dans l'application.
         st.error(f"DÉTAIL DE L'ERREUR SUPABASE : {e}") 
         return False
+# --- FONCTIONS DE GESTION DES SALAIRES ---
+
+def get_employees(user_id):
+    """Récupère tous les employés d'un utilisateur."""
+    try:
+        response = supabase.table('employees').select('*').eq('user_id', user_id).execute()
+        return response.data
+    except Exception as e:
+        st.error(f"Erreur DB (get_employees): {e}")
+        return []
+
+def add_employee(user_id, nom, poste, salaire):
+    """Ajoute un nouvel employé à la base de données."""
+    try:
+        supabase.table('employees').insert({
+            'user_id': user_id,
+            'nom_employe': nom,
+            'poste': poste,
+            'salaire_brut': salaire
+        }).execute()
+        return True
+    except Exception as e:
+        st.error(f"Erreur DB (add_employee): {e}")
+        return False
