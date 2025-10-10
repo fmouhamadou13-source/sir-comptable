@@ -1006,7 +1006,7 @@ else:
     today = datetime.utcnow().date() # On utilise une date naive pour les calculs simples
     start_date, end_date = None, today
     if periode == "Mois en cours": start_date = today.replace(day=1)
-            elif periode == "Trimestre en cours":
+    elif periode == "Trimestre en cours":
                 current_quarter = (today.month - 1) // 3 + 1
                 start_month = (current_quarter - 1) * 3 + 1
                 start_date = today.replace(month=start_month, day=1)
@@ -1171,6 +1171,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
