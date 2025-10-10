@@ -236,7 +236,7 @@ def add_transaction(transaction_date, trans_type, amount, category, description)
         "date": str(transaction_date),
         "type": trans_type,
         "montant": amount,
-        "categorie": category,
+        "category": category,
         "description": description
     }
     # 2. Envoyer à Supabase
@@ -1118,6 +1118,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
