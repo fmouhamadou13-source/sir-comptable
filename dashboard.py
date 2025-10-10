@@ -235,7 +235,7 @@ def add_transaction(transaction_date, trans_type, amount, category, description)
     new_transaction_data = {
         "date": str(transaction_date),
         "type": trans_type,
-        "montant": amount,
+        "amount": amount,
         "category": category,
         "description": description
     }
@@ -1118,6 +1118,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
