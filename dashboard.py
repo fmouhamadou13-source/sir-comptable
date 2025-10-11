@@ -724,7 +724,7 @@ else:
                                 "total_ttc": total_ttc,
                                 "articles": st.session_state.invoice_items.copy()
                             }
-
+                            st.json(invoice_data_to_save)
                             # On appelle la fonction de db.py
                             success = add_invoice(invoice_data_to_save)
 
@@ -1220,6 +1220,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
