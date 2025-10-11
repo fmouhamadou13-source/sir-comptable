@@ -726,7 +726,7 @@ else:
     }
 
                             # On appelle la fonction de db.py
-                            success = add_invoice(st.session_state.user.id, invoice_data_to_save)
+                            success = add_invoice(invoice_data_to_save)
 
                             if success:
                                 # On met à jour l'état local pour l'affichage immédiat
@@ -1220,6 +1220,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
