@@ -67,6 +67,25 @@ def load_user_data(user_id):
         st.session_state.salaries = pd.DataFrame(columns=[
             "Nom de l'employé", 'Poste', 'Salaire Brut'
         ])
+    # --- CHARGEMENT DES FACTURES ---
+    invoices_data = get_invoices(user_id)
+    if invoices_data:
+        # On charge dans un DataFrame temporaire pour le renommage
+        df_invoices = pd.DataFrame(invoices_data)
+    
+        # On renomme les colonnes de la BDD vers les noms attendus par votre code d'affichage
+        df_invoices.rename(columns={
+            'number': 'Numéro',
+            'client': 'Client',
+            'issue_date': 'Date Émission',
+            'total_ttc': 'Montant'
+            # Adaptez si votre code d'affichage utilise d'autres noms
+        }, inplace=True)
+    
+        # On reconvertit en liste de dictionnaires pour la boucle d'affichage
+        st.session_state.factures = df_invoices.to_dict('records')
+    else:
+        st.session_state.factures = []   
         
 # Vérifie les abonnements expirés à chaque lancement
 expired_count = check_expired_subscriptions()
@@ -694,27 +713,44 @@ else:
                             st.session_state.invoice_items.append({"description": "", "quantite": 1, "prix_unitaire": 0.0, "total": 0.0}); st.rerun()
                     with submit_col2:
                         if st.form_submit_button("Enregistrer la facture"):
-                            new_invoice_data = {
-                                "Numéro": numero_facture, "Client": nom_client, 
-                                "Date Émission": date_emission, "Statut": "Enregistrée", "Type": type_facture, 
-                                "Articles": st.session_state.invoice_items.copy(),
-                                "Sous-total": soustotal_ht, "TVA %": vat_rate,
-                                "Montant TVA": vat_amount, "Montant": total_ttc
-                            }
-                            st.session_state.factures.append(new_invoice_data)
-                            add_transaction(date_emission, type_facture, total_ttc, 'Facturation', f"Facture {numero_facture} pour {nom_client}")
-                            if type_facture == 'Revenu':
-                                for item in st.session_state.invoice_items:
-                                    product_name = item.get("description")
-                                    quantity_sold = item.get("quantite")
-                                    if product_name and product_name in st.session_state.stock["Nom du Produit"].values:
-                                        # Trouver l'index du produit dans le stock
-                                        idx = st.session_state.stock[st.session_state.stock["Nom du Produit"] == product_name].index[0]
-                                        # Réduire la quantité
-                                        st.session_state.stock.loc[idx, "Quantité"] -= quantity_sold
-                                st.success("Stock mis à jour.")
-                            st.session_state.invoice_items = [{"description": "", "quantite": 1, "prix_unitaire": 0.0, "total": 0.0}]
-                            st.success(f"Facture enregistrée."); st.rerun()
+                            invoice_data_to_save = {
+                                "number": numero_facture,
+                                "client": nom_client,
+                                "issue_date": str(date_emission),
+                                "status": "Enregistrée",
+                                "total_ht": soustotal_ht,
+                                "tva": vat_amount,
+                                "total_ttc": total_ttc,
+                                "articles": st.session_state.invoice_items.copy()
+    }
+
+                            # On appelle la fonction de db.py
+                            success = add_invoice(st.session_state.user.id, invoice_data_to_save)
+
+                            if success:
+                                # On met à jour l'état local pour l'affichage immédiat
+                                # Note : On doit créer un dictionnaire avec les noms renommés pour l'affichage
+                                display_invoice_data = {
+                                    "Numéro": numero_facture,
+                                    "Client": nom_client,
+                                    "Date Émission": date_emission,
+                                    "Montant": total_ttc,
+                                    "Articles": st.session_state.invoice_items.copy()
+                                 }
+                                 st.session_state.factures.append(display_invoice_data)
+        
+                                 # On enregistre la transaction et on met à jour le stock
+                                 add_transaction(date_emission, type_facture, total_ttc, 'Facturation', f"Facture {numero_facture} pour {nom_client}")
+                                 if type_facture == 'Revenu':
+                                     for item in st.session_state.invoice_items:
+                                         product_name = item.get("description")
+                                         quantity_sold = item.get("quantite", 0)
+                                         if product_name and product_name != "--- Autre Produit/Service ---":
+                                             update_stock_quantity(st.session_state.user.id, product_name, quantity_sold)
+        
+                                 st.session_state.invoice_items = [{"description": "", "montant": 0.0}]
+                                 st.success(f"Facture {numero_facture} enregistrée et stock mis à jour.")
+                                 st.rerun()
         
             st.subheader("Historique des Factures")
             if not st.session_state.factures:
@@ -1183,6 +1219,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
