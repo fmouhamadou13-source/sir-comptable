@@ -715,6 +715,7 @@ else:
                     with submit_col2:
                         if st.form_submit_button("Enregistrer la facture"):
                             invoice_data_to_save = {
+                                "user_id": st.session_state.user.id,
                                 "number": numero_facture,
                                 "client": nom_client,
                                 "issue_date": str(date_emission),
@@ -724,7 +725,6 @@ else:
                                 "total_ttc": total_ttc,
                                 "articles": st.session_state.invoice_items.copy()
                             }
-                            st.json(invoice_data_to_save)
                             # On appelle la fonction de db.py
                             success = add_invoice(invoice_data_to_save)
 
@@ -1220,6 +1220,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
