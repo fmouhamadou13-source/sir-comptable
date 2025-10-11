@@ -212,6 +212,17 @@ def add_employee(user_id, nom, poste, salaire):
         st.error(f"Erreur DB (add_employee): {e}")
         return False
         
+# --- FONCTIONS DE GESTION DES FACTURES ---
+
+def get_invoices(user_id):
+    """Récupère toutes les factures d'un utilisateur."""
+    try:
+        response = supabase.table('invoices').select('*').eq('user_id', user_id).execute()
+        return response.data
+    except Exception as e:
+        st.error(f"Erreur DB (get_invoices): {e}")
+        return []
+
 def add_invoice(invoice_data):
     """Ajoute une nouvelle facture à la base de données."""
     try:
