@@ -736,8 +736,8 @@ else:
                                     "Date Émission": date_emission,
                                     "Montant": total_ttc,
                                     "Articles": st.session_state.invoice_items.copy()
-                                 }
-                                 st.session_state.factures.append(display_invoice_data)
+                                }
+                                st.session_state.factures.append(display_invoice_data)
         
                                  # On enregistre la transaction et on met à jour le stock
                                  add_transaction(date_emission, type_facture, total_ttc, 'Facturation', f"Facture {numero_facture} pour {nom_client}")
@@ -1219,6 +1219,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
