@@ -719,7 +719,7 @@ else:
                                 "number": numero_facture,
                                 "client": nom_client,
                                 "issue_date": str(date_emission),
-                                "status": "Enregistrée",
+                                "status": "Saved",
                                 "total_ht": soustotal_ht,
                                 "tva": vat_amount,
                                 "total_ttc": total_ttc,
@@ -1220,6 +1220,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
