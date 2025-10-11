@@ -70,7 +70,6 @@ def get_all_users():
         st.error(f"Erreur récupération utilisateurs : {e}")
         return []
 
-
 def update_user_role(user_id, new_role):
     """Met à jour le rôle d'un utilisateur."""
     try:
@@ -211,4 +210,14 @@ def add_employee(user_id, nom, poste, salaire):
         return True
     except Exception as e:
         st.error(f"Erreur DB (add_employee): {e}")
+        return False
+        
+def add_invoice(invoice_data):
+    """Ajoute une nouvelle facture à la base de données."""
+    try:
+        # Le user_id est déjà dans le dictionnaire, on peut donc insérer directement
+        supabase.table('invoices').insert(invoice_data).execute()
+        return True
+    except Exception as e:
+        st.error(f"Erreur DB (add_invoice): {e}")
         return False
