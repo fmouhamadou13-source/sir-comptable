@@ -16,6 +16,7 @@ from db import (
     get_accounts, add_account,
     get_accounts, add_account,
     get_employees, add_employee
+    get_invoices, add_invoice
 )
 # dashboard.py
 
@@ -1219,6 +1220,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
