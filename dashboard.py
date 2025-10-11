@@ -748,7 +748,7 @@ else:
                                          if product_name and product_name != "--- Autre Produit/Service ---":
                                              update_stock_quantity(st.session_state.user.id, product_name, quantity_sold)
         
-                                 st.session_state.invoice_items = [{"description": "", "montant": 0.0}]
+                                st.session_state.invoice_items = [{"description": "", "montant": 0.0}]
                                  st.success(f"Facture {numero_facture} enregistrée et stock mis à jour.")
                                  st.rerun()
         
@@ -1219,6 +1219,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
