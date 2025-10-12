@@ -94,17 +94,18 @@ def load_user_data(user_id):
     stock_data = get_stock(user_id)
     if stock_data:
         st.session_state.stock = pd.DataFrame(stock_data)
+        # CORRECTION : Les clés à gauche correspondent maintenant aux noms de votre BDD
         st.session_state.stock.rename(columns={
-            'nom_produit': 'Nom du Produit',
+            'product_name': 'Nom du Produit',
             'description': 'Description',
-            'quantite': 'Quantité',
-            'prix_achat': "Prix d'Achat",
-            'prix_vente': 'Prix de Vente'
+            'quantity': 'Quantité',
+            'purchase_price': "Prix d'Achat",
+            'sale_price': 'Prix de Vente'
         }, inplace=True)
     else:
         st.session_state.stock = pd.DataFrame(columns=[
             'Nom du Produit', 'Description', 'Quantité', "Prix d'Achat", 'Prix de Vente'
-        ])     
+        ])    
 # Vérifie les abonnements expirés à chaque lancement
 expired_count = check_expired_subscriptions()
 if expired_count > 0:
@@ -871,14 +872,14 @@ else:
                     if st.form_submit_button("Ajouter le produit"):
                         item_data = {
                             "user_id": st.session_state.user.id,
-                            "nom_produit": nom_produit,
+                            "product_name": nom_produit,
                             "description": description,
-                            "quantite": quantite,
-                            "prix_achat": prix_achat,
-                            "prix_vente": prix_vente
-                    }
-                    success = add_stock_item(item_data)
-                    if success:
+                            "quantity": quantite,
+                            "purchase_price": prix_achat,
+                            "sale_price": prix_vente
+                        }
+                        success = add_stock_item(item_data)
+                        if success:
                         # Mettre à jour l'affichage local
                         st.session_state.stock = pd.concat([st.session_state.stock, new_product], ignore_index=True)
                         st.success(f"Produit '{nom_produit}' ajouté au stock.")
@@ -1259,6 +1260,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
