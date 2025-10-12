@@ -232,6 +232,7 @@ def add_invoice(invoice_data):
     except Exception as e:
         st.error(f"Erreur DB (add_invoice): {e}")
         return False
+        
 # --- FONCTIONS DE GESTION DU STOCK ---
 
 def get_stock(user_id):
