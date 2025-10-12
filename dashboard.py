@@ -880,10 +880,10 @@ else:
                         }
                         success = add_stock_item(item_data)
                         if success:
-                        # Mettre à jour l'affichage local
-                        st.session_state.stock = pd.concat([st.session_state.stock, new_product], ignore_index=True)
-                        st.success(f"Produit '{nom_produit}' ajouté au stock.")
-                        st.rerun()
+                            # Mettre à jour l'affichage local
+                            st.session_state.stock = pd.concat([st.session_state.stock, new_product], ignore_index=True)
+                            st.success(f"Produit '{nom_produit}' ajouté au stock.")
+                            st.rerun()
             st.markdown("---")
             st.subheader("Inventaire Actuel")
             st.dataframe(st.session_state.stock, use_container_width=True)
@@ -1260,6 +1260,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
