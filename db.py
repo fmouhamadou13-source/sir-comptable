@@ -238,7 +238,7 @@ def add_invoice(invoice_data):
 def get_stock(user_id):
     """Récupère tout le stock d'un utilisateur."""
     try:
-        # Note: Assurez-vous que le nom de la table est correct ('stock' ou 'Stock')
+        # Assurez-vous que le nom de la table est 'stock' (en minuscules)
         response = supabase.table('stock').select('*').eq('user_id', user_id).execute()
         return response.data
     except Exception as e:
@@ -255,22 +255,18 @@ def add_stock_item(item_data):
         return False
 
 def update_stock_quantity(user_id, product_name, change_in_quantity):
-    """Modifie la quantité d'un produit.
-    
-    change_in_quantity peut être positif (achat) ou négatif (vente).
-    """
+    """Modifie la quantité d'un produit."""
     try:
-        # 1. Récupérer le produit et sa quantité actuelle
-        product = supabase.table('stock').select('id, quantite').eq('user_id', user_id).eq('nom_produit', product_name).single().execute()
+        # CORRECTION : Utilisation des noms de colonnes anglais de votre BDD
+        product = supabase.table('stock').select('id, quantity').eq('user_id', user_id).eq('product_name', product_name).single().execute()
 
         if product.data:
-            current_quantity = product.data.get('quantite', 0)
+            current_quantity = product.data.get('quantity', 0)
             new_quantity = current_quantity + change_in_quantity
-
-            # 2. Mettre à jour avec la nouvelle quantité
-            supabase.table('stock').update({'quantite': new_quantity}).eq('id', product.data['id']).execute()
+            # CORRECTION : Utilisation de 'quantity' pour la mise à jour
+            supabase.table('stock').update({'quantity': new_quantity}).eq('id', product.data['id']).execute()
             return True
-        return False # Le produit n'a pas été trouvé
+        return False
     except Exception as e:
         st.error(f"Erreur DB (update_stock_quantity): {e}")
         return False
