@@ -895,9 +895,9 @@ else:
             
                                 st.success(f"Produit '{nom_produit}' ajouté au stock.")
                                 st.rerun()
-            # Cette partie s'exécute si le nom du produit est laissé vide
-            else:
-                st.error("Le nom du produit ne peut pas être vide.")    
+                    # Cette partie s'exécute si le nom du produit est laissé vide
+                    else:
+                        st.error("Le nom du produit ne peut pas être vide.")    
             st.markdown("---")
             st.subheader("Inventaire Actuel")
             st.dataframe(st.session_state.stock, use_container_width=True)
@@ -1274,6 +1274,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
