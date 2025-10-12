@@ -82,10 +82,10 @@ def load_user_data(user_id):
             'client': 'Client',
             'issue_date': 'Date Émission',
             'total_ttc': 'Montant'
-            # Adaptez si votre code d'affichage utilise d'autres noms
+            'status': 'Statut',
+            'articles': 'Articles'
         }, inplace=True)
-    
-        # On reconvertit en liste de dictionnaires pour la boucle d'affichage
+        df_invoices['Date Émission'] = pd.to_datetime(df_invoices['Date Émission'])
         st.session_state.factures = df_invoices.to_dict('records')
     else:
         st.session_state.factures = [] 
@@ -1274,6 +1274,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
