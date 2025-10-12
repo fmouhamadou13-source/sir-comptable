@@ -232,3 +232,44 @@ def add_invoice(invoice_data):
     except Exception as e:
         st.error(f"Erreur DB (add_invoice): {e}")
         return False
+# --- FONCTIONS DE GESTION DU STOCK ---
+
+def get_stock(user_id):
+    """Récupère tout le stock d'un utilisateur."""
+    try:
+        # Note: Assurez-vous que le nom de la table est correct ('stock' ou 'Stock')
+        response = supabase.table('stock').select('*').eq('user_id', user_id).execute()
+        return response.data
+    except Exception as e:
+        st.error(f"Erreur DB (get_stock): {e}")
+        return []
+
+def add_stock_item(item_data):
+    """Ajoute un nouvel article au stock."""
+    try:
+        supabase.table('stock').insert(item_data).execute()
+        return True
+    except Exception as e:
+        st.error(f"Erreur DB (add_stock_item): {e}")
+        return False
+
+def update_stock_quantity(user_id, product_name, change_in_quantity):
+    """Modifie la quantité d'un produit.
+    
+    change_in_quantity peut être positif (achat) ou négatif (vente).
+    """
+    try:
+        # 1. Récupérer le produit et sa quantité actuelle
+        product = supabase.table('stock').select('id, quantite').eq('user_id', user_id).eq('nom_produit', product_name).single().execute()
+
+        if product.data:
+            current_quantity = product.data.get('quantite', 0)
+            new_quantity = current_quantity + change_in_quantity
+
+            # 2. Mettre à jour avec la nouvelle quantité
+            supabase.table('stock').update({'quantite': new_quantity}).eq('id', product.data['id']).execute()
+            return True
+        return False # Le produit n'a pas été trouvé
+    except Exception as e:
+        st.error(f"Erreur DB (update_stock_quantity): {e}")
+        return False
