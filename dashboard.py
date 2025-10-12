@@ -81,7 +81,7 @@ def load_user_data(user_id):
             'number': 'Numéro',
             'client': 'Client',
             'issue_date': 'Date Émission',
-            'total_ttc': 'Montant'
+            'total_ttc': 'Montant',
             'status': 'Statut',
             'articles': 'Articles'
         }, inplace=True)
@@ -1274,6 +1274,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
