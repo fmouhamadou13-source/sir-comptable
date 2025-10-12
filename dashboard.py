@@ -760,11 +760,12 @@ else:
                                 # On enregistre la transaction et on met à jour le stock
                                 add_transaction(date_emission, type_facture, total_ttc, 'Facturation', f"Facture {numero_facture} pour {nom_client}")
                                 if type_facture == 'Revenu':
-                                     for item in st.session_state.invoice_items:
-                                         product_name = item.get("description")
-                                         quantity_sold = item.get("quantite", 0)
-                                         if product_name and product_name != "--- Autre Produit/Service ---":
-                                             update_stock_quantity(st.session_state.user.id, product_name, quantity_sold)
+                                    for item in st.session_state.invoice_items:
+                                        product_name = item.get("description")
+                                        quantity_sold = item.get("quantite", 0)
+                                        if product_name and product_name != "--- Autre Produit/Service ---":
+                                            # On envoie une quantité NÉGATIVE pour une vente
+                                            update_stock_quantity(st.session_state.user.id, product_name, -quantity_sold)
         
                                 st.session_state.invoice_items = [{"description": "", "montant": 0.0}]
                                 st.success(f"Facture {numero_facture} enregistrée et stock mis à jour.")
@@ -868,19 +869,40 @@ else:
                         prix_vente = st.number_input("Prix de Vente", min_value=0.0, format="%.2f")
 
                     if st.form_submit_button("Ajouter le produit"):
-                        new_product = pd.DataFrame([{
-                            "Nom du Produit": nom_produit, 
-                            "Description": description, 
-                            "Quantité": quantite, 
-                            "Prix d'Achat": prix_achat, 
-                            "Prix de Vente": prix_vente
-                        }])
+                        item_data = {
+                            "user_id": st.session_state.user.id,
+                            "nom_produit": nom_produit,
+                            "description": description,
+                            "quantite": quantite,
+                            "prix_achat": prix_achat,
+                            "prix_vente": prix_vente
+                    }
+                    success = add_stock_item(item_data)
+                    if success:
+                        # Mettre à jour l'affichage local
                         st.session_state.stock = pd.concat([st.session_state.stock, new_product], ignore_index=True)
                         st.success(f"Produit '{nom_produit}' ajouté au stock.")
-
+                        st.rerun()
             st.markdown("---")
             st.subheader("Inventaire Actuel")
             st.dataframe(st.session_state.stock, use_container_width=True)
+            st.markdown("---")
+            st.subheader("Enregistrer un Achat de Stock")
+
+            # S'assurer que le stock n'est pas vide avant de créer le formulaire
+            if not st.session_state.stock.empty:
+                with st.form("purchase_stock_form", clear_on_submit=True):
+                    product_to_purchase = st.selectbox("Produit Acheté", options=st.session_state.stock["Nom du Produit"])
+                    quantity_purchased = st.number_input("Quantité Achetée", min_value=1, step=1)
+        
+                    if st.form_submit_button("Ajouter au Stock"):
+                        # On envoie une quantité POSITIVE pour un achat
+                        success = update_stock_quantity(st.session_state.user.id, product_to_purchase, quantity_purchased)
+                        if success:
+                            st.success(f"Stock de '{product_to_purchase}' mis à jour.")
+                            st.rerun()
+            else:
+                st.info("Ajoutez d'abord des produits à votre inventaire pour pouvoir enregistrer des achats.")
         elif sub_page == _("op_expenses"):
             st.subheader(_("op_expenses"))
             with st.form("operating_expenses_form", clear_on_submit=True):
@@ -1237,6 +1259,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
