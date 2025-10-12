@@ -16,7 +16,9 @@ from db import (
     get_accounts, add_account,
     get_accounts, add_account,
     get_employees, add_employee,
-    get_invoices, add_invoice
+    get_invoices, add_invoice,
+    get_stock, add_stock_item,
+    update_stock_quantity
 )
 # dashboard.py
 
@@ -86,8 +88,23 @@ def load_user_data(user_id):
         # On reconvertit en liste de dictionnaires pour la boucle d'affichage
         st.session_state.factures = df_invoices.to_dict('records')
     else:
-        st.session_state.factures = []   
+        st.session_state.factures = [] 
         
+    # --- CHARGEMENT DU STOCK ---
+    stock_data = get_stock(user_id)
+    if stock_data:
+        st.session_state.stock = pd.DataFrame(stock_data)
+        st.session_state.stock.rename(columns={
+            'nom_produit': 'Nom du Produit',
+            'description': 'Description',
+            'quantite': 'Quantité',
+            'prix_achat': "Prix d'Achat",
+            'prix_vente': 'Prix de Vente'
+        }, inplace=True)
+    else:
+        st.session_state.stock = pd.DataFrame(columns=[
+            'Nom du Produit', 'Description', 'Quantité', "Prix d'Achat", 'Prix de Vente'
+        ])     
 # Vérifie les abonnements expirés à chaque lancement
 expired_count = check_expired_subscriptions()
 if expired_count > 0:
@@ -1220,6 +1237,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
