@@ -870,6 +870,8 @@ else:
                         prix_vente = st.number_input("Prix de Vente", min_value=0.0, format="%.2f")
 
                     if st.form_submit_button("Ajouter le produit"):
+                    # On vérifie d'abord que le nom du produit n'est pas vide
+                    if nom_produit:
                         item_data = {
                             "user_id": st.session_state.user.id,
                             "product_name": nom_produit,
@@ -879,6 +881,7 @@ else:
                             "sale_price": prix_vente
                         }
                         success = add_stock_item(item_data)
+        
                         if success:
                             new_product_df = pd.DataFrame([{
                                 "Nom du Produit": nom_produit,
@@ -886,14 +889,15 @@ else:
                                 "Quantité": quantite,
                                 "Prix d'Achat": prix_achat,
                                 "Prix de Vente": prix_vente
-                        }])
-                        # 2. On l'ajoute à la liste existante dans st.session_state
-                        st.session_state.stock = pd.concat([st.session_state.stock, new_product_df], ignore_index=True)
-                
-                        st.success(f"Produit '{nom_produit}' ajouté au stock.")
-                        st.rerun() 
-                else:
-                    st.error("Le nom du produit ne peut pas être vide.")    
+                            }])
+            
+                            st.session_state.stock = pd.concat([st.session_state.stock, new_product_df], ignore_index=True)
+            
+                            st.success(f"Produit '{nom_produit}' ajouté au stock.")
+                            st.rerun()
+        # Cette partie s'exécute si le nom du produit est laissé vide
+        else:
+            st.error("Le nom du produit ne peut pas être vide.")    
             st.markdown("---")
             st.subheader("Inventaire Actuel")
             st.dataframe(st.session_state.stock, use_container_width=True)
@@ -1270,6 +1274,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
