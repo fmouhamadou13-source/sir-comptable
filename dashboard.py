@@ -760,6 +760,7 @@ else:
         
                                 # On enregistre la transaction et on met à jour le stock
                                 add_transaction(date_emission, type_facture, total_ttc, 'Facturation', f"Facture {numero_facture} pour {nom_client}")
+                                st.json(st.session_state.invoice_items)
                                 if type_facture == 'Revenu':
                                    for item in st.session_state.invoice_items:
                                        product_name = item.get("description")
@@ -1281,6 +1282,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
