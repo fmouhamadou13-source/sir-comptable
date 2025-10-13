@@ -251,8 +251,7 @@ if session and not st.session_state.get("logged_in"):
     if 'data_loaded' not in st.session_state:
         load_user_data(st.session_state.user.id)
         st.session_state.data_loaded = True
-# --- UPDATED LOGIN/SIGNUP PAGE ---
-if not st.session_state.get("logged_in"):
+
 # --- Initialisation de la mémoire ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "page" not in st.session_state: st.session_state.page = "Tableau de Bord"
@@ -1315,6 +1314,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
