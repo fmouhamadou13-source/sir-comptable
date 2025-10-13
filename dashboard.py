@@ -778,7 +778,7 @@ else:
         
                                 st.session_state.invoice_items = [{"description": "", "montant": 0.0}]
                                 st.success(f"Facture {numero_facture} enregistrée et stock mis à jour.")
-                                st.rerun()
+                                # st.rerun()
         
             st.subheader("Historique des Factures")
             if not st.session_state.factures:
@@ -1282,6 +1282,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
