@@ -743,9 +743,6 @@ else:
                             st.session_state.invoice_items.append({"description": "", "quantite": 1, "prix_unitaire": 0.0, "total": 0.0}); st.rerun()
                     with submit_col2:
                         if st.form_submit_button("Enregistrer la facture"):
-    
-                            # --- CORRECTION MAJEURE : On reconstruit la liste des articles ---
-                            # On lit l'état de chaque ligne du formulaire au moment du clic
                             final_invoice_items = []
                             for i in range(len(st.session_state.invoice_items)):
                                 # On récupère le nom du produit DEPUIS LA LISTE DÉROULANTE
@@ -784,6 +781,16 @@ else:
                             success = add_invoice(invoice_data_to_save)
 
                             if success:
+                                display_invoice_data = {
+                                    "Numéro": numero_facture,
+                                    "Client": nom_client,
+                                    "Date Émission": date_emission, # Doit être un objet date, pas du texte
+                                    "Montant": total_ttc,
+                                    "Statut": "Brouillon", # Assurez-vous que les autres colonnes y sont aussi si vous les affichez
+                                    "Articles": final_invoice_items
+                                }
+                                # On ajoute ce dictionnaire formaté à la liste d'affichage
+                                st.session_state.factures.append(display_invoice_data)
                                 # On enregistre la transaction associée
                                 transaction_success = add_transaction(date_emission, type_facture, total_ttc, 'Facturation', f"Facture {numero_facture} pour {nom_client}")
         
@@ -1314,6 +1321,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
