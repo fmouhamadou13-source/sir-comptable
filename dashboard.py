@@ -240,7 +240,19 @@ def init_supabase_connection():
     return create_client(url, key)
 
 supabase: Client = init_supabase_connection()
-
+try:
+    session = supabase.auth.get_session()
+except Exception:
+    session = None
+if session and not st.session_state.get("logged_in"):
+    st.session_state.logged_in = True
+    st.session_state.user = session.user
+    # On s'assure de charger les données si ce n'est pas déjà fait
+    if 'data_loaded' not in st.session_state:
+        load_user_data(st.session_state.user.id)
+        st.session_state.data_loaded = True
+# --- UPDATED LOGIN/SIGNUP PAGE ---
+if not st.session_state.get("logged_in"):
 # --- Initialisation de la mémoire ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "page" not in st.session_state: st.session_state.page = "Tableau de Bord"
@@ -787,6 +799,12 @@ else:
                                             update_success, message = update_stock_quantity(st.session_state.user.id, product_name, -quantity_sold)
                                             if update_success:
                                                 st.toast(message, icon="✅")
+                                                # On cherche l'index du produit dans notre liste en mémoire
+                                                product_index = st.session_state.stock[st.session_state.stock['Nom du Produit'] == product_name].index
+                
+                                                # S'il est trouvé, on met à jour la quantité directement
+                                                if not product_index.empty:
+                                                    st.session_state.stock.loc[product_index, 'Quantité'] -= quantity_sold
                                             else:
                                                 st.warning(message)
 
@@ -1297,6 +1315,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
