@@ -255,18 +255,21 @@ def add_stock_item(item_data):
         return False
 
 def update_stock_quantity(user_id, product_name, change_in_quantity):
-    """Modifie la quantité d'un produit."""
+    """Modifie la quantité d'un produit. Renvoie un tuple (succès, message)."""
     try:
-        # CORRECTION : Utilisation des noms de colonnes anglais de votre BDD
+        # Assurez-vous que les noms de table ('stock') et de colonne ('product_name', 'quantity') sont corrects
         product = supabase.table('stock').select('id, quantity').eq('user_id', user_id).eq('product_name', product_name).single().execute()
 
         if product.data:
             current_quantity = product.data.get('quantity', 0)
             new_quantity = current_quantity + change_in_quantity
-            # CORRECTION : Utilisation de 'quantity' pour la mise à jour
+            
             supabase.table('stock').update({'quantity': new_quantity}).eq('id', product.data['id']).execute()
-            return True
-        return False
+            return (True, f"Stock de '{product_name}' mis à jour.")
+        else:
+            # C'est la cause la plus probable de l'échec : le produit n'est pas trouvé
+            return (False, f"AVERTISSEMENT : Le produit '{product_name}' n'a pas été trouvé dans le stock. La quantité n'a pas été mise à jour.")
+            
     except Exception as e:
-        st.error(f"Erreur DB (update_stock_quantity): {e}")
-        return False
+        # Affiche l'erreur technique si quelque chose d'autre se passe (ex: problème de RLS)
+        return (False, f"Erreur technique lors de la mise à jour du stock : {e}")
