@@ -1289,48 +1289,34 @@ else:
                     st.write(f"**{user['email']}**")
                 with col2:
                     new_role = st.selectbox(
-                        "Rôle",
-                        ["user", "admin"],
-                        index=0 if user["role"] == "user" else 1,
+                        "Rôle", ["user", "admin"],
+                        index=0 if user.get("role") == "user" else 1,
                         key=f"role_{user['email']}"
                     )
                 with col3:
                     new_status = st.selectbox(
-                        "Abonnement",
-                        ["free", "premium"],
-                        index=0 if user["subscription_status"] == "free" else 1,
+                        "Abonnement", ["free", "premium"],
+                        index=0 if user.get("subscription_status") == "free" else 1,
                         key=f"sub_{user['email']}"
                     )
                 with col4:
                     if st.button("Mettre à jour", key=f"update_{user['email']}"):
                         try:
-                            # Récupération du user_id
-                            user_id_data = supabase.table("profiles").select("id").eq("email", user["email"]).execute()
-                            if not user_id_data.data:
-                                st.error("Utilisateur introuvable.")
-                            else:
-                                user_id = user_id_data.data[0]["id"]
+                            # --- CORRECTION N°1 : On utilise l'ID déjà fourni ---
+                            # Plus besoin de rechercher l'ID, la variable 'user' le contient déjà !
+                            user_id = user['id']
 
-                                # Mise à jour du rôle
-                                update_user_role(user_id, new_role)
+                            # Mise à jour du rôle
+                            update_user_role(user_id, new_role)
 
-                                # Mise à jour du statut d'abonnement
-                                update_user_subscription_status(user_id, new_status)
+                            # --- CORRECTION N°2 : On utilise le bon nom de fonction ---
+                            update_user_subscription(user_id, new_status)
 
-                                st.success(f"✅ Profil de {user['email']} mis à jour avec succès.")
-                                st.rerun()
+                            st.success(f"✅ Profil de {user['email']} mis à jour avec succès.")
+                            st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
-
-
-
-
-
-
-
-
-
-
+                        
 
 
 
