@@ -64,7 +64,7 @@ def login(email, password):
 def get_all_users():
     """Récupère tous les profils utilisateurs (pour l'admin)."""
     try:
-        data = supabase.table('profiles').select('id, email, role, subscription_status, expiry_date').execute()
+        data = supabase_admin.table('profiles').select('id, email, role, subscription_status, expiry_date').execute()
         return data.data
     except Exception as e:
         st.error(f"Erreur récupération utilisateurs : {e}")
