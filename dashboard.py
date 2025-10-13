@@ -294,7 +294,7 @@ def add_transaction(transaction_date, trans_type, amount, category, description)
     new_transaction_data = {
         "date": str(transaction_date),
         "type": trans_type,
-        "montant": amount,
+        "amount": amount,
         "category": category,
         "description": description
     }
@@ -732,6 +732,31 @@ else:
                             st.session_state.invoice_items.append({"description": "", "quantite": 1, "prix_unitaire": 0.0, "total": 0.0}); st.rerun()
                     with submit_col2:
                         if st.form_submit_button("Enregistrer la facture"):
+    
+                            # --- CORRECTION MAJEURE : On reconstruit la liste des articles ---
+                            # On lit l'état de chaque ligne du formulaire au moment du clic
+                            final_invoice_items = []
+                            for i in range(len(st.session_state.invoice_items)):
+                                # On récupère le nom du produit DEPUIS LA LISTE DÉROULANTE
+                                product_name_selected = st.session_state[f"stock_select_{i}"]
+        
+                                # Si c'est un produit custom, on prend la description manuelle
+                                if product_name_selected == "--- Autre Produit/Service ---":
+                                    description = st.session_state[f"desc_{i}"]
+                                else:
+                                    description = product_name_selected
+
+                                item = {
+                                    "nom_produit": product_name_selected, # On garde le nom du produit du stock
+                                    "description": description, # Description finale pour la facture
+                                    "quantite": st.session_state[f"qty_{i}"],
+                                    "prix_unitaire": st.session_state[f"price_{i}"],
+                                    "total": st.session_state[f"qty_{i}"] * st.session_state[f"price_{i}"]
+                                }
+                                final_invoice_items.append(item)
+                            # --- FIN DE LA CORRECTION MAJEURE ---
+
+                            # On prépare le dictionnaire pour la BDD avec la liste d'articles finale
                             invoice_data_to_save = {
                                 "user_id": st.session_state.user.id,
                                 "number": numero_facture,
@@ -741,44 +766,34 @@ else:
                                 "total_ht": soustotal_ht,
                                 "tva": vat_amount,
                                 "total_ttc": total_ttc,
-                                "articles": st.session_state.invoice_items.copy()
+                                "articles": final_invoice_items # On utilise la nouvelle liste
                             }
-                            # On appelle la fonction de db.py
+
+                            # On sauvegarde la facture
                             success = add_invoice(invoice_data_to_save)
 
                             if success:
-                                # On met à jour l'état local pour l'affichage immédiat
-                                # Note : On doit créer un dictionnaire avec les noms renommés pour l'affichage
-                                display_invoice_data = {
-                                    "Numéro": numero_facture,
-                                    "Client": nom_client,
-                                    "Date Émission": date_emission,
-                                    "Montant": total_ttc,
-                                    "Articles": st.session_state.invoice_items.copy()
-                                }
-                                st.session_state.factures.append(display_invoice_data)
+                                # On enregistre la transaction associée
+                                transaction_success = add_transaction(date_emission, type_facture, total_ttc, 'Facturation', f"Facture {numero_facture} pour {nom_client}")
         
-                                # On enregistre la transaction et on met à jour le stock
-                                add_transaction(date_emission, type_facture, total_ttc, 'Facturation', f"Facture {numero_facture} pour {nom_client}")
-                                st.json(st.session_state.invoice_items)
+                                # Mise à jour du stock en utilisant la liste d'articles finale
                                 if type_facture == 'Revenu':
-                                   for item in st.session_state.invoice_items:
-                                       product_name = item.get("description")
-                                       quantity_sold = item.get("quantite", 0)
-        
-                                       if product_name and product_name != "--- Autre Produit/Service ---":
-                                           # On envoie une quantité NÉGATIVE pour une vente
-                                           success, message = update_stock_quantity(st.session_state.user.id, product_name, -quantity_sold)
-            
-                                           # On affiche un message pour informer l'utilisateur du résultat
-                                           if success:
-                                               st.toast(message, icon="✅") # Affiche une petite notification de succès
-                                           else:
-                                               st.warning(message) # Affiche un avertissement visible si ça échoue
-        
-                                st.session_state.invoice_items = [{"description": "", "montant": 0.0}]
-                                st.success(f"Facture {numero_facture} enregistrée et stock mis à jour.")
-                                # st.rerun()
+                                    for item in final_invoice_items:
+                                        # On utilise la clé 'nom_produit' qui vient directement de la liste déroulante
+                                        product_name = item.get("nom_produit")
+                                        quantity_sold = item.get("quantite", 0)
+                
+                                        if product_name and product_name != "--- Autre Produit/Service ---":
+                                            update_success, message = update_stock_quantity(st.session_state.user.id, product_name, -quantity_sold)
+                                            if update_success:
+                                                st.toast(message, icon="✅")
+                                            else:
+                                                st.warning(message)
+
+                                # On réinitialise le formulaire de facture et on rafraîchit
+                                st.session_state.invoice_items = [{"description": "", "quantite": 1, "prix_unitaire": 0.0, "total": 0.0}]
+                                st.success(f"Facture {numero_facture} enregistrée.")
+                                st.rerun()
         
             st.subheader("Historique des Factures")
             if not st.session_state.factures:
@@ -1282,6 +1297,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
