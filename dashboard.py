@@ -761,12 +761,19 @@ else:
                                 # On enregistre la transaction et on met à jour le stock
                                 add_transaction(date_emission, type_facture, total_ttc, 'Facturation', f"Facture {numero_facture} pour {nom_client}")
                                 if type_facture == 'Revenu':
-                                    for item in st.session_state.invoice_items:
-                                        product_name = item.get("description")
-                                        quantity_sold = item.get("quantite", 0)
-                                        if product_name and product_name != "--- Autre Produit/Service ---":
-                                            # On envoie une quantité NÉGATIVE pour une vente
-                                            update_stock_quantity(st.session_state.user.id, product_name, -quantity_sold)
+                                   for item in st.session_state.invoice_items:
+                                       product_name = item.get("description")
+                                       quantity_sold = item.get("quantite", 0)
+        
+                                       if product_name and product_name != "--- Autre Produit/Service ---":
+                                           # On envoie une quantité NÉGATIVE pour une vente
+                                           success, message = update_stock_quantity(st.session_state.user.id, product_name, -quantity_sold)
+            
+                                           # On affiche un message pour informer l'utilisateur du résultat
+                                           if success:
+                                               st.toast(message, icon="✅") # Affiche une petite notification de succès
+                                           else:
+                                               st.warning(message) # Affiche un avertissement visible si ça échoue
         
                                 st.session_state.invoice_items = [{"description": "", "montant": 0.0}]
                                 st.success(f"Facture {numero_facture} enregistrée et stock mis à jour.")
@@ -1274,6 +1281,7 @@ else:
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
+
 
 
 
