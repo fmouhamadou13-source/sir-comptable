@@ -394,7 +394,8 @@ else:
         # --- Récupération du profil utilisateur ---
         user_id = st.session_state.user.id
         profile = get_user_profile(user_id) if "user" in st.session_state and st.session_state.user else None
-
+        st.sidebar.write("--- PROFIL ACTUEL DE L'UTILISATEUR ---")
+        st.sidebar.json(profile)
         # --- Vérification des accès ---
         user_email = (st.session_state.user.email or "").lower()
         is_admin = (
@@ -1317,6 +1318,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
