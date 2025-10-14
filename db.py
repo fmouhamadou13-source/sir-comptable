@@ -33,24 +33,25 @@ def get_user_profile(user_id):
         return {}
 # --- FONCTIONS D'AUTHENTIFICATION ---
 def signup(email, password):
-    """Inscription + création automatique du profil."""
+    """Inscription de l'utilisateur ET création de son profil."""
     try:
+        # Étape A : On inscrit l'utilisateur auprès du service d'authentification
         response = supabase.auth.sign_up({"email": email, "password": password})
         user = response.user
 
-        if not user:
-            return {"error": "Inscription échouée"}
-
-        # Création automatique du profil utilisateur
-        supabase.table("profiles").insert({
-            "id": user.id,
-            "email": email,
-            "role": "user",
-            "subscription_status": "free",
-            "expiry_date": None
-        }).execute()
-
-        return {"success": True, "user": user}
+        if user:
+            # Étape B : On utilise le client ADMIN pour forcer la création du profil.
+            # Cela contourne les règles RLS qui pourraient bloquer un nouvel utilisateur.
+            supabase_admin.table("profiles").insert({
+                "id": user.id,
+                "email": email,
+                "role": "user",
+                "subscription_status": "free"
+            }).execute()
+            
+            return {"success": True, "user": user}
+        else:
+            return {"error": "L'utilisateur n'a pas pu être créé dans Supabase Auth."}
 
     except Exception as e:
         return {"error": str(e)}
