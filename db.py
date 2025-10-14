@@ -73,9 +73,10 @@ def get_all_users():
 def update_user_role(user_id, new_role):
     """Met à jour le rôle d'un utilisateur."""
     try:
-        supabase.table('profiles').update({'role': new_role}).eq('id', user_id).execute()
+        supabase_admin.table('profiles').update({'role': new_role}).eq('id', user_id).execute()
         return True
-    except Exception:
+    except Exception as e:
+        print(f"Erreur update_user_role: {e}") # Ajout pour le débogage
         return False
 
 def update_user_subscription(user_id, new_status):
@@ -88,21 +89,23 @@ def update_user_subscription(user_id, new_status):
         else: # free
             update_data = {'subscription_status': 'free', 'expiry_date': None}
             
-        supabase.table('profiles').update(update_data).eq('id', user_id).execute()
+        supabase_admin.table('profiles').update(update_data).eq('id', user_id).execute()
         return True
-    except Exception:
+    except Exception as e:
+        print(f"Erreur update_user_subscription: {e}") # Ajout pour le débogage
         return False
 # ✅ Fonction propre pour repasser un utilisateur en Free
 def revert_to_free(user_id):
     """Reclasse un utilisateur Premium en Free."""
     try:
-        supabase.table('profiles').update({
+        supabase_admin.table('profiles').update({
             'subscription_status': 'free',
             'expiry_date': None
         }).eq('id', user_id).execute()
         return True
     except Exception as e:
-        st.error(f"Erreur retour à Free : {e}")
+        # Pour une tâche de fond, il est souvent mieux d'afficher dans la console
+        print(f"Erreur retour à Free : {e}")
         return False
         
 # --- FONCTIONS DE GESTION DES TRANSACTIONS ---
