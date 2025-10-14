@@ -23,11 +23,9 @@ supabase_admin = init_supabase_admin_connection()
 def get_user_profile(user_id):
     """Récupère toutes les infos du profil (rôle + abonnement)."""
     try:
-        response = supabase.table("profiles").select("*").eq("id", user_id).execute()
-        if response.data:
-            return response.data[0]
-        else:
-            return {}
+        # CORRECTION : On utilise le client admin pour garantir la lecture du profil
+        response = supabase_admin.table("profiles").select("*").eq("id", user_id).single().execute()
+        return response.data
     except Exception as e:
         print(f"Erreur get_user_profile: {e}")
         return {}
@@ -35,18 +33,17 @@ def get_user_profile(user_id):
 def signup(email, password):
     """Inscription de l'utilisateur ET création de son profil."""
     try:
-        # Étape A : On inscrit l'utilisateur auprès du service d'authentification
+        # Étape A : Inscription auprès de Supabase Auth
         response = supabase.auth.sign_up({"email": email, "password": password})
         user = response.user
 
         if user:
-            # Étape B : On utilise le client ADMIN pour forcer la création du profil.
-            # Cela contourne les règles RLS qui pourraient bloquer un nouvel utilisateur.
+            # Étape B : Création du profil avec le client ADMIN
             supabase_admin.table("profiles").insert({
                 "id": user.id,
                 "email": email,
-                "role": "user",
-                "subscription_status": "free"
+                "role": "user",  # CORRECTION : Valeur par défaut correcte
+                "subscription_status": "free" # CORRECTION : Valeur par défaut correcte
             }).execute()
             
             return {"success": True, "user": user}
@@ -74,10 +71,11 @@ def get_all_users():
 def update_user_role(user_id, new_role):
     """Met à jour le rôle d'un utilisateur."""
     try:
+        # CORRECTION : On utilise le client admin pour modifier les autres utilisateurs
         supabase_admin.table('profiles').update({'role': new_role}).eq('id', user_id).execute()
         return True
     except Exception as e:
-        print(f"Erreur update_user_role: {e}") # Ajout pour le débogage
+        print(f"Erreur update_user_role: {e}")
         return False
 
 def update_user_subscription(user_id, new_status):
@@ -86,14 +84,15 @@ def update_user_subscription(user_id, new_status):
     try:
         if new_status == 'premium':
             expiry = date.today() + timedelta(days=30)
-            update_data = {'subscription_status': 'premium', 'expiry_date': str(expiry)}
+            update_data = {'subscription_status': new_status, 'expiry_date': str(expiry)}
         else: # free
-            update_data = {'subscription_status': 'free', 'expiry_date': None}
+            update_data = {'subscription_status': new_status, 'expiry_date': None}
             
+        # CORRECTION : On utilise le client admin pour modifier les autres utilisateurs
         supabase_admin.table('profiles').update(update_data).eq('id', user_id).execute()
         return True
     except Exception as e:
-        print(f"Erreur update_user_subscription: {e}") # Ajout pour le débogage
+        print(f"Erreur update_user_subscription: {e}")
         return False
 # ✅ Fonction propre pour repasser un utilisateur en Free
 def revert_to_free(user_id):
