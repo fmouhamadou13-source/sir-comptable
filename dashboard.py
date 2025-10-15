@@ -1254,7 +1254,14 @@ else:
             company_name = st.text_input(_("settings_company_name"), value=st.session_state.company_name)
             company_address = st.text_area(_("settings_address"), value=st.session_state.company_address)
             company_contact = st.text_input(_("settings_contact"), value=st.session_state.company_contact)
-            company_vat_rate = st.number_input(_("settings_vat_rate"), value=float(st.session_state.company_vat_rate), min_value=0.0, max_value=100.0, step=0.1, format="%.2f")
+            company_vat_rate = st.number_input(
+                _("settings_vat_rate"), 
+                value=float(st.session_state.company_vat_rate or 0.0), # On utilise 0.0 si la valeur est None
+                min_value=0.0, 
+                max_value=100.0, 
+                step=0.1, 
+                format="%.2f"
+            )
     
             submitted = st.form_submit_button(_("settings_save_info"))
     
@@ -1362,6 +1369,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
