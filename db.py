@@ -29,6 +29,16 @@ def get_user_profile(user_id):
     except Exception as e:
         print(f"Erreur get_user_profile: {e}")
         return {}
+
+def update_profile_settings(user_id, settings_data):
+    """Met à jour les paramètres de facturation dans le profil d'un utilisateur."""
+    try:
+        supabase_admin.table('profiles').update(settings_data).eq('id', user_id).execute()
+        return True
+    except Exception as e:
+        st.error(f"Erreur lors de la mise à jour des paramètres : {e}")
+        return False
+        
 # --- FONCTIONS D'AUTHENTIFICATION ---
 def signup(email, password):
     """Inscription de l'utilisateur ET création de son profil."""
@@ -302,12 +312,3 @@ def get_next_invoice_number(user_id):
         print(f"Erreur get_next_invoice_number: {e}")
         # En cas d'erreur, on se rabat sur une méthode moins fiable pour éviter de bloquer l'utilisateur
         return len(response.data) + 1 if 'response' in locals() and response.data else 1
-        
-def update_profile_settings(user_id, settings_data):
-    """Met à jour les paramètres de facturation dans le profil d'un utilisateur."""
-    try:
-        supabase_admin.table('profiles').update(settings_data).eq('id', user_id).execute()
-        return True
-    except Exception as e:
-        st.error(f"Erreur lors de la mise à jour des paramètres : {e}")
-        return False
