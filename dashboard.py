@@ -1255,29 +1255,51 @@ else:
             company_address = st.text_area(_("settings_address"), value=st.session_state.company_address)
             company_contact = st.text_input(_("settings_contact"), value=st.session_state.company_contact)
             company_vat_rate = st.number_input(_("settings_vat_rate"), value=float(st.session_state.company_vat_rate), min_value=0.0, max_value=100.0, step=0.1, format="%.2f")
-            
-        
+    
             submitted = st.form_submit_button(_("settings_save_info"))
+    
             if submitted:
-                # On prépare les données TEXTE à sauvegarder
+                user_id = st.session_state.user.id
                 settings_to_update = {
-                    "company_name": company_name,
-                    "company_address": company_address,
-                    "company_contact": company_contact,
-                    "company_vat_rate": company_vat_rate
+                    "company_name": company_name, "company_address": company_address,
+                    "company_contact": company_contact, "company_vat_rate": company_vat_rate
                 }
 
-                # On appelle la fonction de mise à jour de db.py
-                update_profile_settings(st.session_state.user.id, settings_to_update)
+                # --- Logique d'upload du logo ---
+                if logo_file is not None:
+                    file_path = f"{user_id}/logo_{logo_file.name}"
+                    try:
+                        # On upload le fichier
+                        supabase.storage.from_("user_files").upload(file=logo_file.getvalue(), path=file_path, file_options={"cache-control": "3600", "upsert": "true"})
+                        # On récupère l'URL publique
+                        logo_url = supabase.storage.from_("user_files").get_public_url(file_path)
+                        settings_to_update["company_logo_url"] = logo_url
+                        st.session_state.company_logo = logo_url # Mise à jour locale
+                    except Exception as e:
+                        st.error(f"Erreur lors de l'upload du logo : {e}")
 
-                # On met à jour la session locale
+                # --- Logique d'upload de la signature ---
+                if signature_file is not None:
+                    file_path = f"{user_id}/signature_{signature_file.name}"
+                    try:
+                        supabase.storage.from_("user_files").upload(file=signature_file.getvalue(), path=file_path, file_options={"cache-control": "3600", "upsert": "true"})
+                        signature_url = supabase.storage.from_("user_files").get_public_url(file_path)
+                        settings_to_update["company_signature_url"] = signature_url
+                        st.session_state.company_signature = signature_url # Mise à jour locale
+                    except Exception as e:
+                        st.error(f"Erreur lors de l'upload de la signature : {e}")
+
+                # On sauvegarde toutes les modifications (texte + URL des images)
+                if update_profile_settings(user_id, settings_to_update):
+                    st.success(_("settings_info_updated"))
+        
+                # On met à jour la session locale pour le texte
                 st.session_state.company_name = company_name
                 st.session_state.company_address = company_address
                 st.session_state.company_contact = company_contact
                 st.session_state.company_vat_rate = company_vat_rate
 
-                st.success(_("settings_info_updated"))
-    
+        # Affichage des images actuelles (le code ne change pas mais il utilisera maintenant les URL)
         if st.session_state.company_logo:
             st.write(_("settings_current_logo"))
             st.image(st.session_state.company_logo, width=100)
@@ -1340,6 +1362,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
