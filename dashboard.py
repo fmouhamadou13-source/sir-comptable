@@ -5,7 +5,7 @@ from PIL import Image
 from datetime import datetime, date
 import io
 import plotly.express as px
-from fpdf import FPDF
+from fpdf import FPDF, XPos, YPos
 import requests
 import os
 from supabase import create_client, Client
@@ -856,32 +856,34 @@ else:
                         date_emission_safe = safe_encode(facture['Date Émission'].strftime('%d/%m/%Y'))
 
                         pdf.set_font("Helvetica", 'B', 14)
-                        pdf.cell(0, 10, text=f"Facture N {facture_num_safe}", border=0, ln=1, align='C')
+                        pdf.cell(0, 10, text=f"Facture N {facture_num_safe}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
                         pdf.ln(5)
                         pdf.set_font("Helvetica", '', 12)
-                        pdf.cell(0, 8, text=f"Client: {client_safe}", ln=1)
-                        pdf.cell(0, 8, text=f"Date: {date_emission_safe}", ln=1)
+                        pdf.cell(0, 8, text=f"Client: {client_safe}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                        pdf.cell(0, 8, text=f"Date: {date_emission_safe}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                         pdf.ln(10)
                     
                         pdf.set_font("Helvetica", 'B', 12)
-                        pdf.cell(150, 10, "Description", 1, 0, 'C')
-                        pdf.cell(40, 10, "Montant", 1, 1, 'C')
+                        # Remplacement de ln=0
+                        pdf.cell(150, 10, "Description", 1, new_x=XPos.RIGHT, new_y=YPos.TOP, align='C')
+                        # Remplacement de ln=1
+                        pdf.cell(40, 10, "Montant", 1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
                         pdf.set_font("Helvetica", '', 12)
                     
                         for item in facture["Articles"]:
                             safe_description = safe_encode(item['description'])
-                            montant = item.get("total", item.get("montant", 0.0))  # compatibilité
+                            montant = item.get("total", item.get("montant", 0.0))
                             pdf.cell(150, 10, text=safe_description, border=1)
-                            pdf.cell(40, 10, text=f"{montant:,.2f}", border=1, ln=1, align='R')
+                            pdf.cell(40, 10, text=f"{montant:,.2f}", border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
 
                         pdf.set_font("Helvetica", '', 12)
                         pdf.cell(150, 10, text="Sous-total HT", border=1, align='R')
-                        pdf.cell(40, 10, text=f"{facture.get('Sous-total', 0):,.2f}", border=1, ln=1, align='R')
+                        pdf.cell(40, 10, text=f"{facture.get('Sous-total', 0):,.2f}", border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
                         pdf.cell(150, 10, text=f"TVA ({facture.get('TVA %', 0)}%)", border=1, align='R')
-                        pdf.cell(40, 10, text=f"{facture.get('Montant TVA', 0):,.2f}", border=1, ln=1, align='R')
+                        pdf.cell(40, 10, text=f"{facture.get('Montant TVA', 0):,.2f}", border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
                         pdf.set_font("Helvetica", 'B', 12)
                         pdf.cell(150, 10, text="TOTAL TTC", border=1, align='R')
-                        pdf.cell(40, 10, text=f"{facture['Montant']:,.2f}", border=1, ln=1, align='R')
+                        pdf.cell(40, 10, text=f"{facture['Montant']:,.2f}", border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
                     
                         if st.session_state.company_signature:
                             try:
@@ -1316,6 +1318,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
