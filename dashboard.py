@@ -1268,6 +1268,7 @@ else:
     
             if submitted:
                 user_id = st.session_state.user.id
+                st.info(f"ID Utilisateur pour l'upload : {user_id}")
                 settings_to_update = {
                     "company_name": company_name, "company_address": company_address,
                     "company_contact": company_contact, "company_vat_rate": company_vat_rate
@@ -1276,6 +1277,7 @@ else:
                 # --- Logique d'upload du logo ---
                 if logo_file is not None:
                     file_path = f"{user_id}/logo_{logo_file.name}"
+                    st.warning(f"Chemin de destination du logo : {file_path}")
                     try:
                         # On upload le fichier
                         supabase.storage.from_("user_files").upload(file=logo_file.getvalue(), path=file_path, file_options={"cache-control": "3600", "upsert": "true"})
@@ -1289,6 +1291,7 @@ else:
                 # --- Logique d'upload de la signature ---
                 if signature_file is not None:
                     file_path = f"{user_id}/signature_{signature_file.name}"
+                    st.warning(f"Chemin de destination du logo : {file_path}")
                     try:
                         supabase.storage.from_("user_files").upload(file=signature_file.getvalue(), path=file_path, file_options={"cache-control": "3600", "upsert": "true"})
                         signature_url = supabase.storage.from_("user_files").get_public_url(file_path)
@@ -1370,6 +1373,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
