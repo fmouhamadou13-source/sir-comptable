@@ -107,6 +107,17 @@ def load_user_data(user_id):
         st.session_state.stock = pd.DataFrame(columns=[
             'Nom du Produit', 'Description', 'Quantité', "Prix d'Achat", 'Prix de Vente'
         ])    
+
+    # --- CHARGEMENT DES PARAMÈTRES ---
+    profile = get_user_profile(user_id)
+    if profile:
+        st.session_state.company_name = profile.get('company_name', '')
+        st.session_state.company_address = profile.get('company_address', '')
+        st.session_state.company_contact = profile.get('company_contact', '')
+        st.session_state.company_vat_rate = profile.get('company_vat_rate', 0.0)
+        st.session_state.company_logo = profile.get('company_logo_url', None) # On charge l'URL
+        st.session_state.company_signature = profile.get('company_signature_url', None) # On charge l'URL
+        
 # Vérifie les abonnements expirés à chaque lancement
 expired_count = check_expired_subscriptions()
 if expired_count > 0:
@@ -1248,14 +1259,23 @@ else:
         
             submitted = st.form_submit_button(_("settings_save_info"))
             if submitted:
-                if logo_file is not None:
-                    st.session_state.company_logo = logo_file.getvalue()
-                if signature_file is not None:
-                    st.session_state.company_signature = signature_file.getvalue()
+                # On prépare les données TEXTE à sauvegarder
+                settings_to_update = {
+                    "company_name": company_name,
+                    "company_address": company_address,
+                    "company_contact": company_contact,
+                    "company_vat_rate": company_vat_rate
+                }
+
+                # On appelle la fonction de mise à jour de db.py
+                update_profile_settings(st.session_state.user.id, settings_to_update)
+
+                # On met à jour la session locale
                 st.session_state.company_name = company_name
                 st.session_state.company_address = company_address
                 st.session_state.company_contact = company_contact
                 st.session_state.company_vat_rate = company_vat_rate
+
                 st.success(_("settings_info_updated"))
     
         if st.session_state.company_logo:
@@ -1320,6 +1340,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
