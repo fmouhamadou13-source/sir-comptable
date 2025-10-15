@@ -18,7 +18,8 @@ from db import (
     get_employees, add_employee,
     get_invoices, add_invoice,
     get_stock, add_stock_item,
-    update_stock_quantity
+    update_stock_quantity,
+    get_next_invoice_number
 )
 # dashboard.py
 
@@ -691,7 +692,8 @@ else:
                         nom_client = st.text_input("Nom du Tiers (Client/Fournisseur)")
                         date_emission = st.date_input("Date d'émission", value=datetime.today())
                     with col2:
-                        numero_facture = st.text_input("Numéro de Facture", value=f"FACT-{len(st.session_state.factures) + 1:03d}")
+                        next_num = get_next_invoice_number(st.session_state.user.id)
+                        numero_facture = st.text_input("Numéro de Facture", value=f"FACT-{next_num:03d}")
                 
                     st.markdown("---")
                     st.subheader("Articles / Services")
@@ -1318,6 +1320,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
