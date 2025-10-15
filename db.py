@@ -276,3 +276,29 @@ def update_stock_quantity(user_id, product_name, change_in_quantity):
     except Exception as e:
         # Affiche l'erreur technique si quelque chose d'autre se passe (ex: problème de RLS)
         return (False, f"Erreur technique lors de la mise à jour du stock : {e}")
+
+def get_next_invoice_number(user_id):
+    """Trouve le prochain numéro de facture séquentiel pour un utilisateur."""
+    try:
+        # On utilise le client admin pour être sûr de pouvoir lire toutes les factures de l'utilisateur
+        response = supabase_admin.table('invoices').select('number').eq('user_id', user_id).execute()
+        
+        if not response.data:
+            return 1 # C'est la toute première facture
+
+        max_num = 0
+        for item in response.data:
+            try:
+                # On extrait le nombre après le tiret (ex: de "FACT-007", on extrait 7)
+                num_part = int(item['number'].split('-')[1])
+                if num_part > max_num:
+                    max_num = num_part
+            except (ValueError, IndexError):
+                # Ignore les numéros de facture mal formatés
+                continue
+                
+        return max_num + 1
+    except Exception as e:
+        print(f"Erreur get_next_invoice_number: {e}")
+        # En cas d'erreur, on se rabat sur une méthode moins fiable pour éviter de bloquer l'utilisateur
+        return len(response.data) + 1 if 'response' in locals() and response.data else 1
