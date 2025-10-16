@@ -1,4 +1,5 @@
 # --- IMPORTS AND SUPABASE CONNECTION ---
+import base64
 import streamlit as st
 import pandas as pd
 from PIL import Image
@@ -852,14 +853,19 @@ else:
                         pdf.add_page()
                         pdf.set_auto_page_break(auto=True, margin=15)
                     
-                        if st.session_state.company_logo:
+                        if st.session_state.get('company_logo'):
                             try:
-                                logo_bytes = io.BytesIO(st.session_state.company_logo)
-                                pil_logo = Image.open(logo_bytes)
+                                # On extrait les données base64 de la data URL
+                                logo_base64_data = st.session_state.company_logo.split(',')[1]
+                                logo_bytes = base64.b64decode(logo_base64_data)
+                                logo_img_file = io.BytesIO(logo_bytes)
+        
+                                pil_logo = Image.open(logo_img_file)
                                 temp_logo_path = "temp_logo.png"
                                 pil_logo.save(temp_logo_path)
                                 pdf.image(temp_logo_path, x=10, y=8, w=33)
-                            except Exception: pass
+                            except Exception as e:
+                                print(f"Erreur image logo PDF: {e}")
                     
                         current_y = pdf.get_y()
                         pdf.set_y(8)
@@ -905,14 +911,19 @@ else:
                         pdf.cell(150, 10, text="TOTAL TTC", border=1, align='R')
                         pdf.cell(40, 10, text=f"{facture['Montant']:,.2f}", border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
                     
-                        if st.session_state.company_signature:
+                        if st.session_state.get('company_signature'):
                             try:
-                                sig_bytes = io.BytesIO(st.session_state.company_signature)
-                                pil_sig = Image.open(sig_bytes)
+                                # On extrait les données base64
+                                sig_base64_data = st.session_state.company_signature.split(',')[1]
+                                sig_bytes = base64.b64decode(sig_base64_data)
+                                sig_img_file = io.BytesIO(sig_bytes)
+        
+                                pil_sig = Image.open(sig_img_file)
                                 temp_sig_path = "temp_signature.png"
                                 pil_sig.save(temp_sig_path)
                                 pdf.image(temp_sig_path, x=150, y=pdf.get_y() + 10, w=50)
-                            except Exception: pass
+                            except Exception as e:
+                                print(f"Erreur image signature PDF: {e}")
 
                         pdf_output = bytes(pdf.output(dest='S'))
                         col3.download_button(label="📄 Télécharger en PDF", data=pdf_output, file_name=f"Facture_{facture['Numéro']}.pdf", mime="application/pdf")
@@ -1258,16 +1269,13 @@ else:
             logo_file = st.file_uploader(_("settings_upload_logo"), type=['png', 'jpg', 'jpeg'])
             signature_file = st.file_uploader(_("settings_upload_signature"), type=['png', 'jpg', 'jpeg'])
 
-            company_name = st.text_input(_("settings_company_name"), value=st.session_state.company_name)
-            company_address = st.text_area(_("settings_address"), value=st.session_state.company_address)
-            company_contact = st.text_input(_("settings_contact"), value=st.session_state.company_contact)
+            company_name = st.text_input(_("settings_company_name"), value=st.session_state.get('company_name', ''))
+            company_address = st.text_area(_("settings_address"), value=st.session_state.get('company_address', ''))
+            company_contact = st.text_input(_("settings_contact"), value=st.session_state.get('company_contact', ''))
             company_vat_rate = st.number_input(
                 _("settings_vat_rate"), 
-                value=float(st.session_state.company_vat_rate or 0.0), # On utilise 0.0 si la valeur est None
-                min_value=0.0, 
-                max_value=100.0, 
-                step=0.1, 
-                format="%.2f"
+               value=float(st.session_state.get('company_vat_rate', 0.0) or 0.0),
+               min_value=0.0, max_value=100.0, step=0.1, format="%.2f"
             )
     
             submitted = st.form_submit_button(_("settings_save_info"))
@@ -1279,33 +1287,23 @@ else:
                     "company_contact": company_contact, "company_vat_rate": company_vat_rate
                 }
 
-                # --- Logique d'upload du logo ---
+                # --- NOUVELLE LOGIQUE BASE64 POUR LE LOGO ---
                 if logo_file is not None:
-                    file_path = f"{user_id}/logo_{logo_file.name}"
-                    st.warning(f"Chemin de destination du logo : {file_path}")
-                    try:
-                        # On upload le fichier
-                        supabase.storage.from_("user_files").upload(file=logo_file.getvalue(), path=file_path, file_options={"cache-control": "3600", "upsert": "true"})
-                        # On récupère l'URL publique
-                        logo_url = supabase.storage.from_("user_files").get_public_url(file_path)
-                        settings_to_update["company_logo_url"] = logo_url
-                        st.session_state.company_logo = logo_url # Mise à jour locale
-                    except Exception as e:
-                        st.error(f"Erreur lors de l'upload du logo : {e}")
+                    logo_bytes = logo_file.getvalue()
+                    logo_base64 = base64.b64encode(logo_bytes).decode('utf-8')
+                    logo_data_url = f"data:image/png;base64,{logo_base64}"
+                    settings_to_update["company_logo_url"] = logo_data_url
+                    st.session_state.company_logo = logo_data_url
 
-                # --- Logique d'upload de la signature ---
+                # --- NOUVELLE LOGIQUE BASE64 POUR LA SIGNATURE ---
                 if signature_file is not None:
-                    file_path = f"{user_id}/signature_{signature_file.name}"
-                    st.warning(f"Chemin de destination du logo : {file_path}")
-                    try:
-                        supabase.storage.from_("user_files").upload(file=signature_file.getvalue(), path=file_path, file_options={"cache-control": "3600", "upsert": "true"})
-                        signature_url = supabase.storage.from_("user_files").get_public_url(file_path)
-                        settings_to_update["company_signature_url"] = signature_url
-                        st.session_state.company_signature = signature_url # Mise à jour locale
-                    except Exception as e:
-                        st.error(f"Erreur lors de l'upload de la signature : {e}")
+                    signature_bytes = signature_file.getvalue()
+                    signature_base64 = base64.b64encode(signature_bytes).decode('utf-8')
+                    signature_data_url = f"data:image/png;base64,{signature_base64}"
+                    settings_to_update["company_signature_url"] = signature_data_url
+                    st.session_state.company_signature = signature_data_url
 
-                # On sauvegarde toutes les modifications (texte + URL des images)
+                # On sauvegarde toutes les modifications (texte + base64 des images)
                 if update_profile_settings(user_id, settings_to_update):
                     st.success(_("settings_info_updated"))
         
@@ -1314,12 +1312,13 @@ else:
                 st.session_state.company_address = company_address
                 st.session_state.company_contact = company_contact
                 st.session_state.company_vat_rate = company_vat_rate
+                st.rerun()
 
-        # Affichage des images actuelles (le code ne change pas mais il utilisera maintenant les URL)
-        if st.session_state.company_logo:
+        # L'affichage des images fonctionne sans changement car st.image comprend les data URL
+        if st.session_state.get('company_logo'):
             st.write(_("settings_current_logo"))
             st.image(st.session_state.company_logo, width=100)
-        if st.session_state.company_signature:
+        if st.session_state.get('company_signature'):
             st.write(_("settings_current_signature"))
             st.image(st.session_state.company_signature, width=150)
         
@@ -1378,6 +1377,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
