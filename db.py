@@ -330,3 +330,15 @@ def delete_invoice(user_id, invoice_id):
     except Exception as e:
         st.error(f"Erreur DB (delete_invoice): {e}")
         return False
+        
+def delete_transaction_for_invoice(user_id, invoice_number):
+    """Supprime la transaction associée à un numéro de facture spécifique."""
+    try:
+        # On cherche une transaction dont la description contient le numéro de la facture
+        # Ex: "Facture FACT-001 pour ..."
+        search_pattern = f"%{invoice_number}%"
+        supabase.table('transactions').delete().eq('user_id', user_id).like('description', search_pattern).execute()
+        return True
+    except Exception as e:
+        st.error(f"Erreur DB (delete_transaction_for_invoice): {e}")
+        return False
