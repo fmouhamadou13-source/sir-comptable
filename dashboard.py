@@ -855,9 +855,9 @@ else:
                             st.write(f"**Total TTC : {facture.get('Montant', 0):,.2f} {st.session_state.currency}**")
                         with col3:
                     
-                        pdf = FPDF()
-                        pdf.add_page()
-                        pdf.set_auto_page_break(auto=True, margin=15)
+                            pdf = FPDF()
+                            pdf.add_page()
+                            pdf.set_auto_page_break(auto=True, margin=15)
                         with col4:
                             if st.button("🗑️ Supprimer", key=f"del_invoice_{facture.get('id')}"):
                                 if delete_invoice(st.session_state.user.id, facture.get('id')):
@@ -1423,6 +1423,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
