@@ -321,3 +321,12 @@ def delete_stock_item(user_id, item_id):
     except Exception as e:
         st.error(f"Erreur DB (delete_stock_item): {e}")
         return False
+        
+def delete_invoice(user_id, invoice_id):
+    """Supprime une facture en utilisant son ID."""
+    try:
+        supabase.table('invoices').delete().eq('user_id', user_id).eq('id', invoice_id).execute()
+        return True
+    except Exception as e:
+        st.error(f"Erreur DB (delete_invoice): {e}")
+        return False
