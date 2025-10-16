@@ -845,14 +845,26 @@ else:
             else:
                 for facture in st.session_state.factures:
                     with st.container(border=True):
-                        col1, col2, col3 = st.columns([2, 1, 1])
-                        col1.write(f"**Facture {facture['Numéro']}** - Client: {facture['Client']}")
-                        col2.write(f"**Total TTC : {facture['Montant']:,.2f} {st.session_state.currency}**")
+                        # On importe d'abord la nouvelle fonction
+                        from db import delete_invoice
+
+                        col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+                        with col1:
+                            st.write(f"**Facture {facture.get('Numéro')}** - Client: {facture.get('Client')}")
+                        with col2:
+                            st.write(f"**Total TTC : {facture.get('Montant', 0):,.2f} {st.session_state.currency}**")
+                        with col3:
                     
                         pdf = FPDF()
                         pdf.add_page()
                         pdf.set_auto_page_break(auto=True, margin=15)
-                    
+                        with col4:
+                            if st.button("🗑️ Supprimer", key=f"del_invoice_{facture.get('id')}"):
+                                if delete_invoice(st.session_state.user.id, facture.get('id')):
+                                    # On recharge toutes les données pour être sûr que tout est à jour
+                                    load_user_data(st.session_state.user.id)
+                                    st.toast("Facture supprimée !")
+                                    st.rerun()
                         if st.session_state.get('company_logo'):
                             try:
                                 # On extrait les données base64 de la data URL
@@ -1411,6 +1423,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
