@@ -312,3 +312,12 @@ def get_next_invoice_number(user_id):
         print(f"Erreur get_next_invoice_number: {e}")
         # En cas d'erreur, on se rabat sur une méthode moins fiable pour éviter de bloquer l'utilisateur
         return len(response.data) + 1 if 'response' in locals() and response.data else 1
+        
+def delete_stock_item(user_id, item_id):
+    """Supprime un article du stock en utilisant son ID."""
+    try:
+        supabase.table('stock').delete().eq('user_id', user_id).eq('id', item_id).execute()
+        return True
+    except Exception as e:
+        st.error(f"Erreur DB (delete_stock_item): {e}")
+        return False
