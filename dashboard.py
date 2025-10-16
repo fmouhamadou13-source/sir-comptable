@@ -14,7 +14,6 @@ from db import (
     get_all_users, update_user_role, update_user_subscription,
     get_transactions, add_transaction_to_db,
     get_accounts, add_account,
-    get_accounts, add_account,
     get_employees, add_employee,
     get_invoices, add_invoice,
     get_stock, add_stock_item,
@@ -290,6 +289,17 @@ if 'bp_data' not in st.session_state:
 if 'stock' not in st.session_state:
     st.session_state.stock = pd.DataFrame(columns=["Nom du Produit", "Description", "Quantité", "Prix d'Achat", "Prix de Vente"])
 
+# 4. Tentative de restauration de la session (MAINTENANT)
+if not st.session_state.logged_in:
+    try:
+        session = supabase.auth.get_session()
+        if session:
+            st.session_state.logged_in = True
+            st.session_state.user = session.user
+            st.rerun() # On force un rechargement pour que le reste de l'app s'exécute en mode connecté
+    except Exception:
+        pass # Ne rien faire si la récupération de session échoue
+
 # --- Configuration de la page ---
 st.set_page_config(page_title=_("app_title"), page_icon="📊", layout="wide")
 
@@ -531,9 +541,6 @@ else:
         
                 monthly_summary = df_copy.groupby(['Mois', 'Type'])['Montant'].sum().unstack(fill_value=0).reset_index()
                 monthly_summary['Mois'] = monthly_summary['Mois'].astype(str)
-            
-                monthly_summary = df_copy.groupby(['Mois', 'Type'])['Montant'].sum().unstack(fill_value=0).reset_index()
-                monthly_summary['Mois'] = monthly_summary['Mois'].astype(str)
                 monthly_summary.sort_values(by='Mois', inplace=True)
             
                 if 'Revenu' not in monthly_summary.columns: monthly_summary['Revenu'] = 0
@@ -664,7 +671,6 @@ else:
                     if nom_compte:
                         # 1. On appelle la fonction de db.py pour sauvegarder dans la base de données
                         user_id = st.session_state.user.id
-                        st.warning(f"DEBUG (ID envoyé) : {user_id}")
                         success = add_account(user_id, nom_compte, solde_initial, type_compte)
 
                         if success:
@@ -1268,7 +1274,6 @@ else:
     
             if submitted:
                 user_id = st.session_state.user.id
-                st.info(f"ID Utilisateur pour l'upload : {user_id}")
                 settings_to_update = {
                     "company_name": company_name, "company_address": company_address,
                     "company_contact": company_contact, "company_vat_rate": company_vat_rate
@@ -1373,6 +1378,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
