@@ -979,7 +979,41 @@ else:
                         st.error("Le nom du produit ne peut pas être vide.")    
             st.markdown("---")
             st.subheader("Inventaire Actuel")
-            st.dataframe(st.session_state.stock, use_container_width=True)
+
+            # On importe d'abord la nouvelle fonction
+            from db import delete_stock_item
+
+            if not st.session_state.stock.empty:
+                # On crée les en-têtes
+                cols = st.columns([2, 3, 1, 1, 1, 1])
+                headers = ["Nom du Produit", "Description", "Quantité", "Prix d'Achat", "Prix de Vente", "Action"]
+                for col, header in zip(cols, headers):
+                    col.write(f"**{header}**")
+
+                # On boucle sur chaque article pour l'afficher
+                for index, row in st.session_state.stock.iterrows():
+                    col1, col2, col3, col4, col5, col6 = st.columns([2, 3, 1, 1, 1, 1])
+                    with col1:
+                        st.write(row["Nom du Produit"])
+                    with col2:
+                        st.write(row["Description"])
+                    with col3:
+                        st.write(row["Quantité"])
+                    with col4:
+                        st.write(row["Prix d'Achat"])
+                    with col5:
+                        st.write(row["Prix de Vente"])
+                    with col6:
+                        # On ajoute un bouton unique pour chaque article
+                        if st.button("🗑️ Supprimer", key=f"del_stock_{row['id']}"):
+                            # On appelle la fonction de suppression
+                            if delete_stock_item(st.session_state.user.id, row['id']):
+                                # On met à jour l'affichage local et on rafraîchit
+                                st.session_state.stock = st.session_state.stock.drop(index)
+                                st.toast("Article supprimé !")
+                                st.rerun()
+else:
+    st.info("Votre inventaire est vide.")
             st.markdown("---")
             st.subheader("Enregistrer un Achat de Stock")
 
@@ -1377,6 +1411,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
