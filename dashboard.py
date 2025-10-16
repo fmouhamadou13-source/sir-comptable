@@ -20,7 +20,9 @@ from db import (
     get_stock, add_stock_item,
     update_stock_quantity,
     get_next_invoice_number,
-    update_profile_settings
+    update_profile_settings,
+    delete_stock_item,
+    delete_invoice
 )
 # dashboard.py
 
@@ -1421,6 +1423,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
