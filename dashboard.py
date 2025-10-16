@@ -846,7 +846,6 @@ else:
                 for facture in st.session_state.factures:
                     with st.container(border=True):
                         # On importe d'abord la nouvelle fonction
-                        from db import delete_invoice
 
                         col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
                         with col1:
@@ -993,7 +992,6 @@ else:
             st.subheader("Inventaire Actuel")
 
             # On importe d'abord la nouvelle fonction
-            from db import delete_stock_item
 
             if not st.session_state.stock.empty:
                 # On crée les en-têtes
@@ -1423,6 +1421,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
