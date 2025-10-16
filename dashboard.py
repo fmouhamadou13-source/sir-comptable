@@ -22,7 +22,8 @@ from db import (
     get_next_invoice_number,
     update_profile_settings,
     delete_stock_item,
-    delete_invoice
+    delete_invoice,
+    delete_transaction_for_invoice
 )
 # dashboard.py
 
@@ -861,10 +862,19 @@ else:
                             pdf.set_auto_page_break(auto=True, margin=15)
                         with col4:
                             if st.button("🗑️ Supprimer", key=f"del_invoice_{facture.get('id')}"):
-                                if delete_invoice(st.session_state.user.id, facture.get('id')):
-                                    # On recharge toutes les données pour être sûr que tout est à jour
+                                invoice_id_to_delete = facture.get('id')
+                                invoice_number_to_delete = facture.get('Numéro') # On récupère le numéro de facture
+    
+                                # 1. On supprime la facture
+                                if delete_invoice(st.session_state.user.id, invoice_id_to_delete):
+        
+                                    # 2. SI la suppression de la facture a réussi, ON SUPPRIME LA TRANSACTION ASSOCIÉE
+                                    delete_transaction_for_invoice(st.session_state.user.id, invoice_number_to_delete)
+        
+                                    # 3. On recharge toutes les données depuis la BDD pour mettre à jour l'affichage
                                     load_user_data(st.session_state.user.id)
-                                    st.toast("Facture supprimée !")
+        
+                                    st.toast("Facture et transaction associée supprimées !")
                                     st.rerun()
                         if st.session_state.get('company_logo'):
                             try:
@@ -1423,6 +1433,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
