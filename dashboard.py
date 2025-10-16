@@ -1012,8 +1012,8 @@ else:
                                 st.session_state.stock = st.session_state.stock.drop(index)
                                 st.toast("Article supprimé !")
                                 st.rerun()
-else:
-    st.info("Votre inventaire est vide.")
+            else:
+                st.info("Votre inventaire est vide.")
             st.markdown("---")
             st.subheader("Enregistrer un Achat de Stock")
 
@@ -1411,6 +1411,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
