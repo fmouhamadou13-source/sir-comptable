@@ -952,9 +952,6 @@ else:
                                 pdf.image(temp_sig_path, x=150, y=pdf.get_y() + 10, w=50)
                             except Exception as e:
                                 print(f"Erreur image signature PDF: {e}")
-
-                        pdf_output = bytes(pdf.output(dest='S'))
-                        col3.download_button(label="📄 Télécharger en PDF", data=pdf_output, file_name=f"Facture_{facture['Numéro']}.pdf", mime="application/pdf")
                     
                         if os.path.exists("temp_logo.png"): os.remove("temp_logo.png")
                         if os.path.exists("temp_signature.png"): os.remove("temp_signature.png")
@@ -1438,6 +1435,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
