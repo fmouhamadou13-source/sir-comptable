@@ -593,10 +593,11 @@ else:
                         if st.session_state.factures:
                             recents_articles = []
                             for facture in st.session_state.factures[-5:]:
-                                for item in facture['Articles']:
-                                    recents_articles.append(f"- {item['description']} ({item['montant']:,.0f} {st.session_state.currency})")
+                                for item in facture.get('Articles', []):
+                                    description = item.get('description', 'N/A')
+                                    montant = item.get('total', item.get('montant', 0))
+                                    recents_articles.append(f"- {description} ({montant:,.0f} {st.session_state.currency})")
                             recents_articles_str = "\n".join(recents_articles)
-
                         contexte_financier = (
                             f"Résumé financier : Solde net = {solde:,.0f} {st.session_state.currency}. "
                             f"Voici le détail des articles des dernières factures pour analyse :\n{recents_articles_str}"
@@ -622,9 +623,13 @@ else:
                             st.warning(f"{_('error_ai_unexpected')} : {output}")
 
                     except KeyError:
-                        st.error(_("error_hf_token_missing"))
+                        if 'HF_TOKEN' in str(e) or 'HF_API_URL' in str(e):
+                            st.error(_("error_hf_token_missing"))
+                        else:
+                            st.error(f"Erreur de structure dans vos données (probable facture) : Clé manquante -> {e}")
+                            
                     except Exception as e:
-                        st.error(f"{_('error_critical')} : {e}")
+                        st.error(f"Une erreur critique est survenue : {e}"))
             else:
                 st.warning(_("enter_a_question"))
     # --- PAGE MES COMPTES ---
@@ -1433,6 +1438,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
