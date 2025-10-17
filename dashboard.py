@@ -866,7 +866,7 @@ else:
                             pdf.add_page()
                             pdf.set_auto_page_break(auto=True, margin=15)
                         with col4:
-                            if st.button("🗑️ Supprimer", key=f"del_invoice_{facture.get('id')}"):
+                            if st.button("🗑️", key=f"del_invoice_{facture.get('id')}"):
                                 invoice_id_to_delete = facture.get('id')
                                 invoice_number_to_delete = facture.get('Numéro') # On récupère le numéro de facture
     
@@ -1438,6 +1438,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
