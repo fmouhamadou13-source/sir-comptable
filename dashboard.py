@@ -1033,7 +1033,7 @@ else:
                         with col5:
                             st.write(row["Prix de Vente"])
                         with col6:
-                            if st.button("🗑️ Supprimer", key=f"del_stock_{row['id']}"):
+                            if st.button("🗑️", key=f"del_stock_{row['id']}"):
                                 if delete_stock_item(st.session_state.user.id, row['id']):
                                     st.session_state.stock = st.session_state.stock.drop(index)
                                     st.toast("Article supprimé !")
@@ -1438,6 +1438,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
