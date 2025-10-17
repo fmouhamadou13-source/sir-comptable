@@ -629,7 +629,7 @@ else:
                             st.error(f"Erreur de structure dans vos données (probable facture) : Clé manquante -> {e}")
                             
                     except Exception as e:
-                        st.error(f"Une erreur critique est survenue : {e}"))
+                        st.error(f"Une erreur critique est survenue : {e}")
             else:
                 st.warning(_("enter_a_question"))
     # --- PAGE MES COMPTES ---
@@ -1438,6 +1438,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
