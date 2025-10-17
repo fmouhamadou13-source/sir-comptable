@@ -1016,7 +1016,7 @@ else:
                 headers = ["Nom du Produit", "Description", "Quantité", "Prix d'Achat", "Prix de Vente", "Action"]
                 for col, header in zip(cols, headers):
                     col.write(f"**{header}**")
-                 st.markdown("<hr style='margin-top: 0; margin-bottom: 1rem;'>", unsafe_allow_html=True)
+                st.markdown("<hr style='margin-top: 0; margin-bottom: 1rem;'>", unsafe_allow_html=True)
                 # 2. On affiche chaque produit dans son propre conteneur
                 for index, row in st.session_state.stock.iterrows():
                     # LA SOLUTION : On utilise un conteneur pour chaque ligne pour un look "tableau"
@@ -1438,6 +1438,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
