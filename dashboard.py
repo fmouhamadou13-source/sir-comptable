@@ -729,9 +729,30 @@ else:
                     for i, item in enumerate(st.session_state.invoice_items):
                         cols = st.columns([2, 2, 1, 1, 1])
                     
-                        # Colonne 1: Sélection depuis le stock
-                        product_list = ["--- Autre Produit/Service ---"] + list(st.session_state.stock["Nom du Produit"])
-                        selected_product = cols[0].selectbox(f"Choisir du stock #{i+1}", product_list, key=f"stock_select_{i}")
+                        # --- NOUVELLE LOGIQUE DE RECHERCHE ---
+                        with cols[0]:
+                            # 1. On ajoute un champ de recherche textuel
+                            search_term = st.text_input(f"Rechercher un produit #{i+1}", key=f"search_{i}")
+
+                            # 2. On filtre la liste des produits en fonction de la recherche
+                            if search_term:
+                                # On cherche les produits dont le nom contient le terme recherché (insensible à la casse)
+                                filtered_products = st.session_state.stock[
+                                    st.session_state.stock["Nom du Produit"].str.contains(search_term, case=False, na=False)
+                                ]["Nom du Produit"].tolist()
+                            else:
+                                # Si la recherche est vide, on affiche la liste complète
+                                filtered_products = st.session_state.stock["Nom du Produit"].tolist()
+        
+                            product_list = ["--- Autre Produit/Service ---"] + filtered_products
+        
+                            # 3. La liste déroulante n'affiche maintenant que les produits filtrés
+                            selected_product = st.selectbox(
+                                f"Choisir du stock #{i+1}", 
+                                product_list, 
+                                key=f"stock_select_{i}", 
+                                label_visibility="collapsed" # On cache le label pour un look plus propre
+                            )
 
                         is_custom_item = (selected_product == "--- Autre Produit/Service ---")
                     
@@ -1435,6 +1456,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
