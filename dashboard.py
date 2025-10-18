@@ -817,11 +817,11 @@ else:
                 
                     submit_col1, submit_col2 = st.columns(2)
                     with submit_col1:
-                        if st.form_submit_button("Ajouter un article"):
+                        if st.button("Ajouter un article"):
                             st.session_state.invoice_items.append({"description": "", "quantite": 1, "prix_unitaire": 0.0, "total": 0.0}); st.rerun()
                             st.rerun()
                     with submit_col2:
-                        if st.form_submit_button("Enregistrer la facture"):
+                        if st.button("Enregistrer la facture"):
                             final_invoice_items = []
                             for i in range(len(st.session_state.invoice_items)):
                                 # On récupère le nom du produit DEPUIS LA LISTE DÉROULANTE
@@ -1486,6 +1486,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
