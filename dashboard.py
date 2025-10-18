@@ -310,12 +310,70 @@ st.set_page_config(page_title=_("app_title"), page_icon="📊", layout="wide")
 # --- Thème Visuel ---
 st.markdown("""
 <style>
-    .stApp { background-color: #F0EAD6; }
-    body, .st-emotion-cache-1jicfl2, .st-emotion-cache-98r73h, .st-emotion-cache-1629p8f span, .st-emotion-cache-16txtl3, div[data-baseweb="select"] > div { color: #3D405B; }
-    h1, h2, h3 { color: #3D405B; }
-    .stSidebar { background-color: #FFFFFF; }
-    .stButton>button { border: 2px solid #3D405B; background-color: #FFFFFF; color: #3D405B; border-radius: 50px; font-weight: bold; margin-bottom: 10px; }
-    .stButton>button:hover { border: 2px solid #81B29A; background-color: #81B29A; color: #FFFFFF; }
+    /* --- Importation de la Police "Poppins" --- */
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+    /* --- Thème Général --- */
+    html, body, [class*="st-"] {
+        font-family: 'Poppins', sans-serif;
+    }
+    .stApp {
+        background-color: #F8F9FA; /* Arrière-plan Blanc Cassé */
+    }
+    h1, h2, h3 {
+        color: #343A40; /* Texte Principal Gris Foncé */
+    }
+    .st-emotion-cache-16txtl3 {
+        color: #343A40;
+    }
+
+    /* --- La Sidebar --- */
+    .stSidebar {
+        background-color: #FFFFFF;
+        border-right: 1px solid #E0E0E0;
+    }
+
+    /* --- Le Design "Carte" pour les conteneurs --- */
+    /* On cible les conteneurs créés avec st.container(border=True) */
+    [data-testid="stVerticalBlockBorderWrapper"] > div {
+        background-color: #FFFFFF;
+        border: 1px solid #E0E0E0;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
+        padding: 1rem;
+    }
+    /* On supprime la bordure par défaut qui est moins jolie */
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+
+    /* --- Style des Widgets --- */
+    /* Boutons */
+    .stButton>button {
+        border-radius: 8px;
+        border: 2px solid #FBCB0A; /* Bordure Jaune Doré */
+        background-color: #FBCB0A; /* Fond Jaune Doré */
+        color: #343A40; /* Texte Gris Foncé */
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .stButton>button:hover {
+        border: 2px solid #e2b708;
+        background-color: #e2b708;
+        color: #FFFFFF;
+    }
+    .stButton>button:active {
+        background-color: #c9a307 !important;
+        border-color: #c9a307 !important;
+    }
+    
+    /* Champs de saisie & listes déroulantes */
+    div[data-baseweb="input"], div[data-baseweb="select"] {
+        border-radius: 8px !important;
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -1484,6 +1542,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
