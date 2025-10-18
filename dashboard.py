@@ -310,9 +310,12 @@ st.set_page_config(page_title=_("app_title"), page_icon="📊", layout="wide")
 # --- Thème Visuel ---
 st.markdown("""
 <style>
-    /* --- Importation de la Police "Poppins" --- */
+    /* --- Importation des Polices --- */
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
-
+    
+    /* LA CORRECTION : On importe la police pour les icônes */
+    @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+    
     /* --- Thème Général --- */
     html, body, [class*="st-"] {
         font-family: 'Poppins', sans-serif;
@@ -1542,6 +1545,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
