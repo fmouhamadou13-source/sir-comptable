@@ -712,7 +712,6 @@ else:
         elif sub_page == _("invoicing"):
             st.subheader(_("invoicing"))
             with st.expander("Créer une nouvelle facture"):
-                with st.form("new_invoice_form"):
                     type_facture = st.radio("Type de facture", ["Revenu", "Dépense"])
                     col1, col2 = st.columns(2)
                     with col1:
@@ -820,6 +819,7 @@ else:
                     with submit_col1:
                         if st.form_submit_button("Ajouter un article"):
                             st.session_state.invoice_items.append({"description": "", "quantite": 1, "prix_unitaire": 0.0, "total": 0.0}); st.rerun()
+                            st.rerun()
                     with submit_col2:
                         if st.form_submit_button("Enregistrer la facture"):
                             final_invoice_items = []
@@ -1486,6 +1486,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
