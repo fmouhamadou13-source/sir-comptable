@@ -732,8 +732,7 @@ else:
                         with cols[0]:
                             # 1. On ajoute un champ de recherche textuel
                             search_term = st.text_input(f"Rechercher un produit #{i+1}", key=f"search_{i}")
-                            # --- DÉBUT DU BLOC DE DÉBOGAGE ---
-                            st.write(f"_Debug Ligne {i}: Terme recherché = `{search_term}`_")
+                            
                             # 2. On filtre la liste des produits en fonction de la recherche
                             if search_term:
                                 # On cherche les produits dont le nom contient le terme recherché (insensible à la casse)
@@ -743,8 +742,7 @@ else:
                             else:
                                 # Si la recherche est vide, on affiche la liste complète
                                 filtered_products = st.session_state.stock["Nom du Produit"].tolist()
-                            # --- DÉBUT DU BLOC DE DÉBOGAGE ---
-                            st.write(f"_Debug Ligne {i}: {len(filtered_products)} produits trouvés_")
+                            
                             product_list = ["--- Autre Produit/Service ---"] + filtered_products
         
                             # 3. La liste déroulante n'affiche maintenant que les produits filtrés
@@ -1486,6 +1484,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
