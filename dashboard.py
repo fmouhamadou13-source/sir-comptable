@@ -759,22 +759,50 @@ else:
                         if not is_custom_item and selected_product:
                             # Remplir automatiquement si un produit du stock est choisi
                             item_description = selected_product
-                            default_price = float(st.session_state.stock[st.session_state.stock["Nom du Produit"] == selected_product]["Prix de Vente"].iloc[0])
-                            is_disabled = True
                         else:
-                            # Permettre la saisie manuelle
                             item_description = item.get("description", "")
-                            default_price = item.get("prix_unitaire", 0.0)
-                            is_disabled = False
-
+                            
                         # Colonne 2: Champ de description
-                        item["description"] = cols[1].text_input(f"Description #{i+1}", value=item_description, key=f"desc_{i}", disabled=is_disabled)
-                    
-                        # Colonnes restantes
-                        item["quantite"] = cols[2].number_input("Qté", min_value=1, step=1, value=item.get("quantite", 1), key=f"qty_{i}")
-                        item["prix_unitaire"] = cols[3].number_input("Prix Unit.", min_value=0.0, value=default_price, format="%.2f", key=f"price_{i}")
-                        item["total"] = item["quantite"] * item["prix_unitaire"]
-                        cols[4].metric("Total", f"{item['total']:,.2f}")
+                        with cols[1]:
+                            item["description"] = st.text_input(
+                                f"Description #{i+1}", 
+                                value=item_description, 
+                                key=f"desc_{i}", 
+                                disabled=(not is_custom_item and bool(selected_product))
+                            )
+                        # Colonne 3 : Quantité (ne change pas)
+                        with cols[2]:
+                            item["quantite"] = st.number_input("Qté", min_value=1, step=1, value=item.get("quantite", 1), key=f"qty_{i}")
+                        # --- NOUVELLE LOGIQUE POUR LE PRIX ---
+                        # Colonne 4 : Prix Unitaire
+                        with cols[3]:
+                            # On initialise le prix suggéré à 0
+                            suggested_price = 0.0
+                            # Si un produit du stock est sélectionné, on va chercher son prix
+                            if not is_custom_item and selected_product:
+                                match = st.session_state.stock[st.session_state.stock["Nom du Produit"] == selected_product]
+                                if not match.empty:
+                                    # On extrait la valeur de la colonne "Prix de Vente"
+                                    suggested_price = match["Prix de Vente"].iloc[0]
+
+                            # On utilise le prix suggéré comme valeur par défaut pour le champ de saisie
+                            item["prix_unitaire"] = st.number_input(
+                                "Prix Unit.", 
+                                min_value=0.0, 
+                                value=float(suggested_price), # Le prix est pré-rempli
+                                format="%.2f", 
+                                key=f"price_{i}"
+                            )
+        
+                            # Et on l'affiche en petit en dessous comme rappel
+                            if suggested_price > 0:
+                                st.caption(f"Suggéré : {suggested_price:,.0f}")
+                        # --- FIN DE LA NOUVELLE LOGIQUE ---
+            
+                        # Colonne 5 : Total (ne change pas)
+                        with cols[4]:
+                            item["total"] = item["quantite"] * item["prix_unitaire"]
+                            st.metric("Total", f"{item['total']:,.2f}")
 
                     soustotal_ht = sum(item['total'] for item in st.session_state.invoice_items)
                     vat_rate = st.session_state.get('company_vat_rate', 0.0)
@@ -1456,6 +1484,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
