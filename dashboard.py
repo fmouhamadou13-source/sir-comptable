@@ -753,10 +753,10 @@ else:
         elif sub_page == _("invoicing"):
             st.subheader(_("invoicing"))
             with st.expander("Créer une nouvelle facture"):
-                    type_facture = st.radio("Type de facture", ["Revenu", "Dépense"])
+                    type_facture = st.radio("Type de facture", ["Revenu", "Dépense"], key="invoice_type")
                     col1, col2 = st.columns(2)
                     with col1:
-                        nom_client = st.text_input("Nom du Tiers (Client/Fournisseur)")
+                        nom_client = st.text_input("Nom du Tiers (Client/Fournisseur)", key="invoice_client")
                         date_emission = st.date_input("Date d'émission", value=datetime.today())
                     with col2:
                         next_num = get_next_invoice_number(st.session_state.user.id)
@@ -934,6 +934,10 @@ else:
 
                                 # On réinitialise le formulaire de facture et on rafraîchit
                                 st.session_state.invoice_items = [{"description": "", "quantite": 1, "prix_unitaire": 0.0, "total": 0.0}]
+                                # On réinitialise le formulaire de facture pour la prochaine saisie
+                                st.session_state.invoice_items = [{"description": "", "quantite": 1, "prix_unitaire": 0.0, "total": 0.0}]
+                                st.session_state.invoice_client = "" # On vide le nom du client
+                                st.session_state.invoice_type = "Revenu" # On remet le type par défaut
                                 st.success(f"Facture {numero_facture} enregistrée.")
                                 st.rerun()
         
@@ -1525,6 +1529,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
