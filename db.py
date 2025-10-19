@@ -230,7 +230,8 @@ def add_employee(user_id, nom, poste, salaire):
 def get_invoices(user_id):
     """Récupère toutes les factures d'un utilisateur."""
     try:
-        response = supabase.table('invoices').select('*').eq('user_id', user_id).execute()
+        # CORRECTION : On utilise le client admin pour garantir la lecture
+        response = supabase_admin.table('invoices').select('*').eq('user_id', user_id).execute()
         return response.data
     except Exception as e:
         st.error(f"Erreur DB (get_invoices): {e}")
