@@ -87,23 +87,7 @@ def reset_invoice_form():
         ])
     # --- CHARGEMENT DES FACTURES ---
     invoices_data = get_invoices(user_id)
-    if invoices_data:
-        # On charge dans un DataFrame temporaire pour le renommage
-        df_invoices = pd.DataFrame(invoices_data)
-    
-        # On renomme les colonnes de la BDD vers les noms attendus par votre code d'affichage
-        df_invoices.rename(columns={
-            'number': 'Numéro',
-            'client': 'Client',
-            'issue_date': 'Date Émission',
-            'total_ttc': 'Montant',
-            'status': 'Statut',
-            'articles': 'Articles'
-        }, inplace=True)
-        df_invoices['Date Émission'] = pd.to_datetime(df_invoices['Date Émission'])
-        st.session_state.factures = df_invoices.to_dict('records')
-    else:
-        st.session_state.factures = [] 
+    st.session_state.factures = invoices_data if invoices_data else [] 
         
     # --- CHARGEMENT DU STOCK ---
     stock_data = get_stock(user_id)
@@ -950,48 +934,31 @@ else:
             else:
                 for facture in st.session_state.factures:
                     with st.container(border=True):
-                        # On importe d'abord la nouvelle fonction
-
-                        col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
-                        with col1:
-                            st.write(f"**Facture {facture.get('Numéro')}** - Client: {facture.get('Client')}")
-                        with col2:
-                            st.write(f"**Total TTC : {facture.get('Montant', 0):,.2f} {st.session_state.currency}**")
-                        with col3:
-                    
-                            pdf = FPDF()
-                            pdf.add_page()
-                            pdf.set_auto_page_break(auto=True, margin=15)
-                        with col4:
-                            if st.button("🗑️", key=f"del_invoice_{facture.get('id')}"):
-                                invoice_id_to_delete = facture.get('id')
-                                invoice_number_to_delete = facture.get('Numéro') # On récupère le numéro de facture
-    
-                                # 1. On supprime la facture
-                                if delete_invoice(st.session_state.user.id, invoice_id_to_delete):
-        
-                                    # 2. SI la suppression de la facture a réussi, ON SUPPRIME LA TRANSACTION ASSOCIÉE
-                                    delete_transaction_for_invoice(st.session_state.user.id, invoice_number_to_delete)
-        
-                                    # 3. On recharge toutes les données depuis la BDD pour mettre à jour l'affichage
-                                    load_user_data(st.session_state.user.id)
-        
-                                    st.toast("Facture et transaction associée supprimées !")
-                                    st.rerun()
+                        col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
+            
+                    with col1:
+                        st.write(f"**Facture {facture.get('number')}** - Client: {facture.get('client')}")
+                    with col2:
+                        st.write(f"**Total TTC : {facture.get('total_ttc', 0):,.2f} {st.session_state.currency}**")
+            
+                    # --- TOUTE LA LOGIQUE PDF VA DANS CETTE COLONNE ---
+                    with col3:
+                        pdf = FPDF()
+                        pdf.add_page()
+                        pdf.set_auto_page_break(auto=True, margin=15)
+            
                         if st.session_state.get('company_logo'):
                             try:
-                                # On extrait les données base64 de la data URL
                                 logo_base64_data = st.session_state.company_logo.split(',')[1]
                                 logo_bytes = base64.b64decode(logo_base64_data)
                                 logo_img_file = io.BytesIO(logo_bytes)
-        
                                 pil_logo = Image.open(logo_img_file)
                                 temp_logo_path = "temp_logo.png"
                                 pil_logo.save(temp_logo_path)
                                 pdf.image(temp_logo_path, x=10, y=8, w=33)
                             except Exception as e:
                                 print(f"Erreur image logo PDF: {e}")
-                    
+
                         current_y = pdf.get_y()
                         pdf.set_y(8)
                         pdf.set_x(110)
@@ -1001,10 +968,11 @@ else:
                         company_contact_safe = safe_encode(st.session_state.company_contact)
                         pdf.multi_cell(90, 7, f"{company_name_safe}\n{company_address_safe}\n{company_contact_safe}", 0, 'R')
                         pdf.set_y(current_y + 30)
-                    
-                        facture_num_safe = safe_encode(facture['Numéro'])
-                        client_safe = safe_encode(facture['Client'])
-                        date_emission_safe = safe_encode(facture['Date Émission'].strftime('%d/%m/%Y'))
+
+                        facture_num_safe = safe_encode(facture.get('number'))
+                        client_safe = safe_encode(facture.get('client'))
+                        date_obj = pd.to_datetime(facture.get('issue_date'))
+                        date_emission_safe = safe_encode(date_obj.strftime('%d/%m/%Y'))
 
                         pdf.set_font("Helvetica", 'B', 14)
                         pdf.cell(0, 10, text=f"Facture N {facture_num_safe}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
@@ -1013,47 +981,64 @@ else:
                         pdf.cell(0, 8, text=f"Client: {client_safe}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                         pdf.cell(0, 8, text=f"Date: {date_emission_safe}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                         pdf.ln(10)
-                    
+
                         pdf.set_font("Helvetica", 'B', 12)
-                        # Remplacement de ln=0
                         pdf.cell(150, 10, "Description", 1, new_x=XPos.RIGHT, new_y=YPos.TOP, align='C')
-                        # Remplacement de ln=1
                         pdf.cell(40, 10, "Montant", 1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
                         pdf.set_font("Helvetica", '', 12)
-                    
-                        for item in facture["Articles"]:
-                            safe_description = safe_encode(item['description'])
-                            montant = item.get("total", item.get("montant", 0.0))
-                            pdf.cell(150, 10, text=safe_description, border=1)
-                            pdf.cell(40, 10, text=f"{montant:,.2f}", border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
+
+                        articles_list = facture.get("articles", [])
+                        if isinstance(articles_list, list):
+                            for item in articles_list:
+                                safe_description = safe_encode(item.get('description'))
+                                montant = item.get("total", item.get("montant", 0.0))
+                                pdf.cell(150, 10, text=safe_description, border=1)
+                                pdf.cell(40, 10, text=f"{montant:,.2f}", border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
 
                         pdf.set_font("Helvetica", '', 12)
                         pdf.cell(150, 10, text="Sous-total HT", border=1, align='R')
-                        pdf.cell(40, 10, text=f"{facture.get('Sous-total', 0):,.2f}", border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
-                        pdf.cell(150, 10, text=f"TVA ({facture.get('TVA %', 0)}%)", border=1, align='R')
-                        pdf.cell(40, 10, text=f"{facture.get('Montant TVA', 0):,.2f}", border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
+                        pdf.cell(40, 10, text=f"{facture.get('total_ht', 0):,.2f}", border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
+                        pdf.cell(150, 10, text=f"TVA ({facture.get('tva', 0)}%)", border=1, align='R') # Assurez-vous que les noms de clés sont bons
+                        pdf.cell(40, 10, text=f"{facture.get('tva', 0):,.2f}", border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
                         pdf.set_font("Helvetica", 'B', 12)
                         pdf.cell(150, 10, text="TOTAL TTC", border=1, align='R')
-                        pdf.cell(40, 10, text=f"{facture['Montant']:,.2f}", border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
-                    
+                        pdf.cell(40, 10, text=f"{facture.get('total_ttc', 0):,.2f}", border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
+            
                         if st.session_state.get('company_signature'):
                             try:
-                                # On extrait les données base64
                                 sig_base64_data = st.session_state.company_signature.split(',')[1]
                                 sig_bytes = base64.b64decode(sig_base64_data)
                                 sig_img_file = io.BytesIO(sig_bytes)
-        
                                 pil_sig = Image.open(sig_img_file)
                                 temp_sig_path = "temp_signature.png"
                                 pil_sig.save(temp_sig_path)
                                 pdf.image(temp_sig_path, x=150, y=pdf.get_y() + 10, w=50)
                             except Exception as e:
                                 print(f"Erreur image signature PDF: {e}")
-                    
+
+                        pdf_output = pdf.output()
+                        st.download_button(
+                            label="📄",
+                            data=bytes(pdf_output),
+                            file_name=f"Facture_{facture.get('number')}.pdf",
+                            mime="application/pdf",
+                            key=f"pdf_{facture.get('id')}"
+                        )
+                
                         if os.path.exists("temp_logo.png"): os.remove("temp_logo.png")
                         if os.path.exists("temp_signature.png"): os.remove("temp_signature.png")
-                        pdf_output = bytes(pdf.output(dest='S'))
-                        col3.download_button(label="📄 PDF", data=pdf_output, file_name=f"Facture_{facture['Numéro']}.pdf", mime="application/pdf")
+
+                    # --- La colonne pour le bouton Supprimer ---
+                    with col4:
+                        if st.button("🗑️", key=f"del_invoice_{facture.get('id')}"):
+                            invoice_id_to_delete = facture.get('id')
+                            invoice_number_to_delete = facture.get('number')
+                    
+                            if delete_invoice(st.session_state.user.id, invoice_id_to_delete):
+                                delete_transaction_for_invoice(st.session_state.user.id, invoice_number_to_delete)
+                                load_user_data(st.session_state.user.id)
+                                st.toast("Facture et transaction associée supprimées !")
+                                st.rerun()
 
         elif sub_page == "Gestion de Stock":
             st.subheader("Gestion de Stock")
@@ -1532,6 +1517,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
