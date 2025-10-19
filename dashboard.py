@@ -46,7 +46,17 @@ def load_user_data(user_id):
         st.session_state.transactions = pd.DataFrame(columns=[
             'Date', 'Type', 'Montant', 'Catégorie', 'Description'
         ])
-        
+def reset_invoice_form():
+    """Fonction pour vider les champs du formulaire de facturation."""
+    # Réinitialise la liste des articles à une seule ligne vide
+    st.session_state.invoice_items = [{"description": "", "quantite": 1, "prix_unitaire": 0.0, "total": 0.0}]
+    
+    # Réinitialise les champs de base de la facture en vérifiant s'ils existent
+    if "invoice_client" in st.session_state:
+        st.session_state.invoice_client = ""
+    if "invoice_type" in st.session_state:
+        st.session_state.invoice_type = "Revenu"
+    
     # --- NOUVEAU : CHARGEMENT DES COMPTES ---
     accounts_data = get_accounts(user_id)
     if accounts_data:
@@ -860,7 +870,7 @@ else:
                             st.session_state.invoice_items.append({"description": "", "quantite": 1, "prix_unitaire": 0.0, "total": 0.0}); st.rerun()
                             st.rerun()
                     with submit_col2:
-                        if st.button("Enregistrer la facture"):
+                        if st.button("Enregistrer la facture", on_click=reset_invoice_form):
                             final_invoice_items = []
                             for i in range(len(st.session_state.invoice_items)):
                                 # On récupère le nom du produit DEPUIS LA LISTE DÉROULANTE
@@ -931,15 +941,8 @@ else:
                                                     st.session_state.stock.loc[product_index, 'Quantité'] -= quantity_sold
                                             else:
                                                 st.warning(message)
-
-                                # On réinitialise le formulaire de facture et on rafraîchit
-                                st.session_state.invoice_items = [{"description": "", "quantite": 1, "prix_unitaire": 0.0, "total": 0.0}]
-                                # On réinitialise le formulaire de facture pour la prochaine saisie
-                                st.session_state.invoice_items = [{"description": "", "quantite": 1, "prix_unitaire": 0.0, "total": 0.0}]
-                                st.session_state.invoice_client = "" # On vide le nom du client
                                 st.session_state.invoice_type = "Revenu" # On remet le type par défaut
                                 st.success(f"Facture {numero_facture} enregistrée.")
-                                st.rerun()
         
             st.subheader("Historique des Factures")
             if not st.session_state.factures:
@@ -1529,6 +1532,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
