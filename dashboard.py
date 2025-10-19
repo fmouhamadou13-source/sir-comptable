@@ -309,25 +309,12 @@ st.set_page_config(page_title=_("app_title"), page_icon="📊", layout="wide")
 
 # --- Thème Visuel ---
 st.markdown("""
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* LA CORRECTION FINALE : On force l'utilisation de la police d'icônes sur les éléments concernés */
-        .material-icons {
-            font-family: 'Material Icons' !important;
-        }
-
-        /* Thème Général : on définit Poppins comme police par défaut */
-        html, body, [class*="st-"] {
-            font-family: 'Poppins', sans-serif;
-        }
+<style>
+    /* --- Thème Général SANS police personnalisée --- */
     .stApp {
-        background-color: #F8F9FA; /* Arrière-plan Blanc Cassé */
+        background-color: #F8F9FA;
     }
-    h1, h2, h3 {
-        color: #343A40; /* Texte Principal Gris Foncé */
-    }
-    .st-emotion-cache-16txtl3 {
+    h1, h2, h3, .st-emotion-cache-16txtl3 {
         color: #343A40;
     }
 
@@ -337,8 +324,7 @@ st.markdown("""
         border-right: 1px solid #E0E0E0;
     }
 
-    /* --- Le Design "Carte" pour les conteneurs --- */
-    /* On cible les conteneurs créés avec st.container(border=True) */
+    /* --- Le Design "Carte" --- */
     [data-testid="stVerticalBlockBorderWrapper"] > div {
         background-color: #FFFFFF;
         border: 1px solid #E0E0E0;
@@ -346,20 +332,17 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
         padding: 1rem;
     }
-    /* On supprime la bordure par défaut qui est moins jolie */
     [data-testid="stVerticalBlockBorderWrapper"] {
         border: none !important;
         box-shadow: none !important;
     }
 
-
     /* --- Style des Widgets --- */
-    /* Boutons */
     .stButton>button {
         border-radius: 8px;
-        border: 2px solid #FBCB0A; /* Bordure Jaune Doré */
-        background-color: #FBCB0A; /* Fond Jaune Doré */
-        color: #343A40; /* Texte Gris Foncé */
+        border: 2px solid #FBCB0A;
+        background-color: #FBCB0A;
+        color: #343A40;
         font-weight: 600;
         transition: all 0.2s;
     }
@@ -372,15 +355,11 @@ st.markdown("""
         background-color: #c9a307 !important;
         border-color: #c9a307 !important;
     }
-    
-    /* Champs de saisie & listes déroulantes */
     div[data-baseweb="input"], div[data-baseweb="select"] {
         border-radius: 8px !important;
     }
-
 </style>
 """, unsafe_allow_html=True)
-
 # --- Fonctions Utilitaires ---
 @st.cache_data
 def convert_df_to_excel(df):
@@ -1546,6 +1525,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
