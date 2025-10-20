@@ -427,6 +427,8 @@ if not st.session_state.get("logged_in"):
             if submitted:
                 response = login(email, password)
                 if response.user:
+                    if 'data_loaded' in st.session_state:
+                        del st.session_state['data_loaded']
                     st.session_state.logged_in = True
                     st.session_state.user = response.user
                     st.rerun()
@@ -1464,6 +1466,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
