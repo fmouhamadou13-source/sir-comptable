@@ -724,41 +724,51 @@ else:
                 st.warning(_("enter_a_question"))
     # --- PAGE MES COMPTES ---
     elif st.session_state.page == "Mes Comptes":
-        st.title(_("accounts_title"))
-        st.markdown(_("accounts_description"))
-        st.subheader(_("accounts_list"))
+    st.title(_("accounts_title"))
+    st.markdown(_("accounts_description"))
     
+    # --- Affichage de la liste des comptes ---
+    st.subheader(_("accounts_list"))
+    if not st.session_state.comptes.empty:
+        # On renomme les colonnes pour un affichage propre
+        display_comptes = st.session_state.comptes.rename(columns={
+            'name': 'Nom du Compte', 'balance': 'Solde Actuel', 'type': 'Type'
+        })
+        st.dataframe(display_comptes[['Nom du Compte', 'Solde Actuel', 'Type']], use_container_width=True)
+    
+    # --- Section pour gérer les comptes ---
+    with st.expander(_("manage_accounts")):
         if not st.session_state.comptes.empty:
-            excel_data = convert_df_to_excel(st.session_state.comptes)
-            st.download_button(label=_("download_excel"), data=excel_data, file_name='mes_comptes.xlsx')
-    
-        st.dataframe(st.session_state.comptes, use_container_width=True)
-
-        with st.expander(_("manage_accounts")):
-            if not st.session_state.comptes.empty:
-                account_options = [_("choose")] + list(st.session_state.comptes["Nom du Compte"])
-                account_to_manage = st.selectbox(_("select_account"), options=account_options)
             
-                if account_to_manage != _("choose"):
-                    account_index = st.session_state.comptes[st.session_state.comptes["Nom du Compte"] == account_to_manage].index[0]
+            # CORRECTION : On utilise la colonne 'name'
+            account_options = [_("choose")] + list(st.session_state.comptes["name"])
+            account_to_manage = st.selectbox(_("select_account"), options=account_options)
+            
+            if account_to_manage != _("choose"):
+                # On récupère l'index en se basant sur la colonne 'name'
+                account_index = st.session_state.comptes[st.session_state.comptes["name"] == account_to_manage].index[0]
                 
-                    with st.form(f"edit_{account_index}"):
-                        st.write(f"{_('edit')} : **{account_to_manage}**")
-                        new_name = st.text_input(_("name"), value=account_to_manage)
-                        new_balance = st.number_input(_("balance"), value=float(st.session_state.comptes.loc[account_index, "Solde Actuel"]))
+                with st.form(f"edit_{account_index}"):
+                    st.write(f"{_('edit')} : **{account_to_manage}**")
+                    new_name = st.text_input(_("name"), value=account_to_manage)
                     
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            if st.form_submit_button(_("modify_button")):
-                                st.session_state.comptes.loc[account_index, "Nom du Compte"] = new_name
-                                st.session_state.comptes.loc[account_index, "Solde Actuel"] = new_balance
-                                st.success(_("account_updated"))
-                                st.rerun()
-                        with col2:
-                            if st.form_submit_button(_("delete_button")):
-                                st.session_state.comptes = st.session_state.comptes.drop(index=account_index).reset_index(drop=True)
-                                st.warning(_("account_deleted"))
-                                st.rerun()
+                    # CORRECTION : On utilise la colonne 'balance'
+                    new_balance = st.number_input(_("balance"), value=float(st.session_state.comptes.loc[account_index, "balance"]))
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.form_submit_button(_("modify_button")):
+                            # Note : Cette modification n'est que visuelle et non permanente !
+                            st.session_state.comptes.loc[account_index, "name"] = new_name
+                            st.session_state.comptes.loc[account_index, "balance"] = new_balance
+                            st.success(_("account_updated"))
+                            st.rerun()
+                    with col2:
+                        if st.form_submit_button(_("delete_button")):
+                            # Note : Cette suppression n'est que visuelle et non permanente !
+                            st.session_state.comptes = st.session_state.comptes.drop(index=account_index).reset_index(drop=True)
+                            st.warning(_("account_deleted"))
+                            st.rerun()
                             
             with st.form("new_account_form", clear_on_submit=True):
                 st.write(_("add_new_account"))
@@ -1507,6 +1517,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
