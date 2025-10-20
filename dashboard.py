@@ -821,31 +821,44 @@ else:
                 # --- Lignes d'articles dynamiques ---
                 for i, item in enumerate(st.session_state.invoice_items):
                     cols = st.columns([3, 3, 1, 2, 1])
+    
                     with cols[0]:
                         search_term = st.text_input(f"Rechercher un produit", key=f"search_{i}", label_visibility="collapsed", placeholder=f"Rechercher un produit #{i+1}")
+        
+                        # --- CORRECTION ICI ---
+                        # On utilise le nom de colonne de la BDD : "product_name"
                         if search_term:
-                            filtered_products = st.session_state.stock[st.session_state.stock["Nom du Produit"].str.contains(search_term, case=False, na=False)]["Nom du Produit"].tolist()
+                            filtered_products = st.session_state.stock[st.session_state.stock["product_name"].str.contains(search_term, case=False, na=False)]["product_name"].tolist()
                         else:
-                            filtered_products = st.session_state.stock["Nom du Produit"].tolist()
+                            filtered_products = st.session_state.stock["product_name"].tolist()
+                        # --- FIN CORRECTION ---
+
                         product_list = ["--- Autre Produit/Service ---"] + filtered_products
                         selected_product = st.selectbox("Choisir du stock", product_list, key=f"stock_select_{i}", label_visibility="collapsed")
-            
+    
                     is_custom = selected_product == "--- Autre Produit/Service ---"
                     description_value = selected_product if not is_custom else ""
-            
+    
                     with cols[1]:
                         item_description = st.text_input("Description", value=description_value, key=f"desc_{i}", label_visibility="collapsed", placeholder=f"Description #{i+1}", disabled=(not is_custom))
-            
+    
                     with cols[2]:
                         item_quantity = st.number_input("Qté", min_value=1, step=1, value=item.get("quantite", 1), key=f"qty_{i}", label_visibility="collapsed")
-            
+    
                     with cols[3]:
                         suggested_price = 0.0
-                        if not is_custom:
-                            match = st.session_state.stock[st.session_state.stock["Nom du Produit"] == selected_product]
+                        if not is_custom and selected_product:
+                            # --- CORRECTION ICI ---
+                            # On utilise les noms de colonnes de la BDD : "product_name" et "sale_price"
+                            match = st.session_state.stock[st.session_state.stock["product_name"] == selected_product]
                             if not match.empty:
-                                suggested_price = match["Prix de Vente"].iloc[0]
+                                suggested_price = match["sale_price"].iloc[0]
+                            # --- FIN CORRECTION ---
+                
                         item_price = st.number_input("Prix Unit.", min_value=0.0, value=float(suggested_price), format="%.2f", key=f"price_{i}", label_visibility="collapsed")
+        
+                        if suggested_price > 0:
+                            st.caption(f"Suggéré : {suggested_price:,.0f}")
             
                     with cols[4]:
                         st.metric("Total", f"{(item_quantity * item_price):,.0f}")
@@ -1491,6 +1504,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
