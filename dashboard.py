@@ -644,12 +644,22 @@ else:
             
         with col_graphs2:
             st.subheader(_("expense_distribution"))
-            df_depenses = st.session_state.transactions[st.session_state.transactions['Type'] == 'Dépense']
-            if not df_depenses.empty:
-                fig_pie = px.pie(df_depenses, names='Catégorie', values='Montant', title=_("expense_distribution"))
-                st.plotly_chart(fig_pie, use_container_width=True)
-            else:
-                st.info(_("no_expense_to_show"))
+            if not st.session_state.transactions.empty and 'type' in st.session_state.transactions.columns:
+        
+                # CORRECTION : On utilise 'type' (minuscule) pour filtrer
+                df_depenses = st.session_state.transactions[st.session_state.transactions['type'] == 'Dépense']
+        
+                if not df_depenses.empty:
+                    # CORRECTION : On utilise 'category' et 'amount' pour le graphique
+                    fig_pie = px.pie(
+                        df_depenses, 
+                        names='category', 
+                        values='amount', 
+                        title=_("expense_distribution")
+                    )
+                    st.plotly_chart(fig_pie, use_container_width=True)
+                else:
+                    st.info(_("no_expense_to_show"))
             
         st.markdown("---")
         st.subheader(_("talk_to_sir_comptable"))
@@ -1481,6 +1491,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
