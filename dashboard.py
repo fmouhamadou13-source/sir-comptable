@@ -11,7 +11,7 @@ import requests
 import os
 from supabase import create_client, Client
 from db import (
-    get_user_profile, check_expired_subscriptions, login, signup, 
+    get_user_profile, check_expired_subscriptions, login, signup,
     get_all_users, update_user_role, update_user_subscription,
     get_transactions, add_transaction_to_db,
     get_accounts, add_account,
@@ -1504,6 +1504,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
