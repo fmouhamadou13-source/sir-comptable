@@ -639,8 +639,8 @@ else:
                 )
                 st.plotly_chart(fig_line, use_container_width=True)
 
-           else:
-               st.info(_("no_data_for_graph"))
+            else:
+                st.info(_("no_data_for_graph"))
             
         with col_graphs2:
             st.subheader(_("expense_distribution"))
@@ -1481,6 +1481,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
