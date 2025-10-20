@@ -46,13 +46,14 @@ def load_user_data(user_id):
         
 def reset_invoice_form():
     """Fonction pour vider les champs du formulaire de facturation."""
-    keys_to_clear = [key for key in st.session_state if key.startswith("search_") or key.startswith("stock_select_") or key.startswith("desc_") or key.startswith("qty_") or key.startswith("price_")]
-    for key in keys_to_clear:
-        if key in st.session_state:
-            del st.session_state[key]
+    # Réinitialise la liste des articles à une seule ligne vide
+    st.session_state.invoice_items = [{"quantite": 1, "prix_unitaire": 0.0}]
+    
+    # Réinitialise les champs de base de la facture
     if "invoice_client" in st.session_state:
         st.session_state.invoice_client = ""
-    st.session_state.invoice_items = [{"quantite": 1, "prix_unitaire": 0.0}]
+    if "invoice_type" in st.session_state:
+        st.session_state.invoice_type = "Revenu"
     
     # --- NOUVEAU : CHARGEMENT DES COMPTES ---
     accounts_data = get_accounts(user_id)
@@ -1517,6 +1518,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
