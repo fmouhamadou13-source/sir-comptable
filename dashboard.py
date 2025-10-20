@@ -561,12 +561,15 @@ else:
 
         st.markdown("---")
 
-        if not st.session_state.transactions.empty:
-            st.session_state.transactions['Montant'] = pd.to_numeric(st.session_state.transactions['Montant'], errors='coerce').fillna(0)
-
-        total_revenus = st.session_state.transactions[st.session_state.transactions['Type'] == 'Revenu']['Montant'].sum()
-        total_depenses = st.session_state.transactions[st.session_state.transactions['Type'] == 'Dépense']['Montant'].sum()
-        solde_net = total_revenus - total_depenses
+        total_revenus, total_depenses, solde_net = 0, 0, 0
+        if not st.session_state.transactions.empty and 'amount' in st.session_state.transactions.columns:
+            # On s'assure que la colonne 'amount' est numérique
+            st.session_state.transactions['amount'] = pd.to_numeric(st.session_state.transactions['amount'], errors='coerce').fillna(0)
+    
+            # On fait les calculs avec les noms de colonnes de la base de données
+            total_revenus = st.session_state.transactions[st.session_state.transactions['type'] == 'Revenu']['amount'].sum()
+            total_depenses = st.session_state.transactions[st.session_state.transactions['type'] == 'Dépense']['amount'].sum()
+            solde_net = total_revenus - total_depenses
 
         # La logique de l'IA n'est exécutée que si l'on clique sur le bouton
         if refresh_comments and st.session_state.sarcasm_mode:
@@ -1474,6 +1477,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
