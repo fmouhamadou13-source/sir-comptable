@@ -28,24 +28,43 @@ from db import (
 # dashboard.py
 
 def load_user_data(user_id):
-    """Charge TOUTES les données de l'utilisateur depuis la BDD vers st.session_state."""
-    # --- CHARGEMENT DES TRANSACTIONS ---
-    transactions_data = get_transactions(user_id)
-    if transactions_data:
-        st.session_state.transactions = pd.DataFrame(transactions_data)
-        st.session_state.transactions.rename(columns={
-            'date': 'Date',
-            'type': 'Type',
-            'amount': 'Montant',      # <-- CORRECTION N°1
-            'category': 'Catégorie',   # <-- CORRECTION N°2
-            'description': 'Description'
-        }, inplace=True)
-        st.session_state.transactions['Date'] = pd.to_datetime(st.session_state.transactions['Date'])
-        st.session_state.transactions['Montant'] = pd.to_numeric(st.session_state.transactions['Montant'])
-    else:
-        st.session_state.transactions = pd.DataFrame(columns=[
-            'Date', 'Type', 'Montant', 'Catégorie', 'Description'
-        ])
+    """Charge TOUTES les données de l'utilisateur en mode ESPION."""
+    st.warning("--- DÉBUT DU DÉBOGAGE de load_user_data ---")
+    st.info(f"ID Utilisateur reçu : {user_id}")
+
+    # --- On espionne le chargement des factures ---
+    st.write("1. Tentative de chargement des factures avec get_invoices()...")
+    try:
+        invoices_data = get_invoices(user_id)
+        
+        st.write("2. Données brutes reçues de la base de données :")
+        st.json(invoices_data) # Affiche les données brutes reçues
+        
+        if invoices_data:
+            st.success(f"3. SUCCÈS : {len(invoices_data)} facture(s) trouvée(s) dans la base de données.")
+            
+            # On essaie de traiter les données
+            try:
+                df_invoices = pd.DataFrame(invoices_data)
+                df_invoices.rename(columns={
+                    'number': 'Numéro', 'client': 'Client', 'issue_date': 'Date Émission',
+                    'total_ttc': 'Montant', 'status': 'Statut', 'articles': 'Articles'
+                }, inplace=True)
+                df_invoices['Date Émission'] = pd.to_datetime(df_invoices['Date Émission'])
+                st.session_state.factures = df_invoices.to_dict('records')
+                st.success("4. Traitement des factures et sauvegarde dans la session réussis.")
+            except Exception as e:
+                st.error(f"ERREUR PENDANT LE TRAITEMENT des factures : {e}")
+
+        else:
+            st.error("3. ÉCHEC : Aucune facture trouvée pour cet ID dans la base de données.")
+            st.session_state.factures = []
+
+    except Exception as e:
+        st.error(f"ERREUR BLOQUANTE dans la fonction get_invoices() : {e}")
+        st.session_state.factures = []
+        
+    st.warning("--- FIN DU DÉBOGAGE ---")
 def reset_invoice_form():
     """Fonction pour vider les champs du formulaire de facturation."""
     # Réinitialise la liste des articles à une seule ligne vide
@@ -1520,6 +1539,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
