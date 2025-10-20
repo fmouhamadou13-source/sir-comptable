@@ -768,187 +768,112 @@ else:
 
         elif sub_page == _("invoicing"):
             st.subheader(_("invoicing"))
-            with st.expander("Créer une nouvelle facture"):
-                    type_facture = st.radio("Type de facture", ["Revenu", "Dépense"], key="invoice_type")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        nom_client = st.text_input("Nom du Tiers (Client/Fournisseur)", key="invoice_client")
-                        date_emission = st.date_input("Date d'émission", value=datetime.today())
-                    with col2:
-                        next_num = get_next_invoice_number(st.session_state.user.id)
-                        numero_facture = st.text_input("Numéro de Facture", value=f"FACT-{next_num:03d}")
-                
-                    st.markdown("---")
-                    st.subheader("Articles / Services")
-                
-                    # Boucle mise à jour pour les articles de la facture
-                    for i, item in enumerate(st.session_state.invoice_items):
-                        cols = st.columns([2, 2, 1, 1, 1])
-                    
-                        # --- NOUVELLE LOGIQUE DE RECHERCHE ---
-                        with cols[0]:
-                            # 1. On ajoute un champ de recherche textuel
-                            search_term = st.text_input(f"Rechercher un produit #{i+1}", key=f"search_{i}")
-                            
-                            # 2. On filtre la liste des produits en fonction de la recherche
-                            if search_term:
-                                # On cherche les produits dont le nom contient le terme recherché (insensible à la casse)
-                                filtered_products = st.session_state.stock[
-                                    st.session_state.stock["Nom du Produit"].str.contains(search_term, case=False, na=False)
-                                ]["Nom du Produit"].tolist()
-                            else:
-                                # Si la recherche est vide, on affiche la liste complète
-                                filtered_products = st.session_state.stock["Nom du Produit"].tolist()
-                            
-                            product_list = ["--- Autre Produit/Service ---"] + filtered_products
+    
+            # --- FORMULAIRE DE CRÉATION DE FACTURE ---
+            with st.expander("Créer une nouvelle facture", expanded=True):
         
-                            # 3. La liste déroulante n'affiche maintenant que les produits filtrés
-                            selected_product = st.selectbox(
-                                f"Choisir du stock #{i+1}", 
-                                product_list, 
-                                key=f"stock_select_{i}", 
-                                label_visibility="collapsed" # On cache le label pour un look plus propre
-                            )
+                # Définition de la fonction de reset (placée ici pour la clarté)
+                def reset_form_for_new_invoice():
+                    keys_to_clear = [key for key in st.session_state if key.startswith("search_") or key.startswith("stock_select_") or key.startswith("desc_") or key.startswith("qty_") or key.startswith("price_")]
+                    for key in keys_to_clear:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    if "invoice_client" in st.session_state:
+                        st.session_state.invoice_client = ""
+                    st.session_state.invoice_items = [{"quantite": 1, "prix_unitaire": 0.0}]
 
-                        is_custom_item = (selected_product == "--- Autre Produit/Service ---")
-                    
-                        if not is_custom_item and selected_product:
-                            # Remplir automatiquement si un produit du stock est choisi
-                            item_description = selected_product
+                # --- Champs principaux de la facture ---
+                type_facture = st.radio("Type de facture", ["Revenu", "Dépense"], key="invoice_type")
+                col1, col2 = st.columns(2)
+                with col1:
+                    nom_client = st.text_input("Nom du Tiers (Client/Fournisseur)", key="invoice_client")
+                with col2:
+                    date_emission = st.date_input("Date d'émission", value=datetime.today())
+        
+                next_num = get_next_invoice_number(st.session_state.user.id)
+                numero_facture = st.text_input("Numéro de Facture", value=f"FACT-{next_num:03d}")
+
+                st.markdown("---")
+                st.subheader("Articles / Services")
+
+                # --- Lignes d'articles dynamiques ---
+                for i, item in enumerate(st.session_state.invoice_items):
+                    cols = st.columns([3, 3, 1, 2, 1])
+                    with cols[0]:
+                        search_term = st.text_input(f"Rechercher un produit", key=f"search_{i}", label_visibility="collapsed", placeholder=f"Rechercher un produit #{i+1}")
+                        if search_term:
+                            filtered_products = st.session_state.stock[st.session_state.stock["Nom du Produit"].str.contains(search_term, case=False, na=False)]["Nom du Produit"].tolist()
                         else:
-                            item_description = item.get("description", "")
-                            
-                        # Colonne 2: Champ de description
-                        with cols[1]:
-                            item["description"] = st.text_input(
-                                f"Description #{i+1}", 
-                                value=item_description, 
-                                key=f"desc_{i}", 
-                                disabled=(not is_custom_item and bool(selected_product))
-                            )
-                        # Colonne 3 : Quantité (ne change pas)
-                        with cols[2]:
-                            item["quantite"] = st.number_input("Qté", min_value=1, step=1, value=item.get("quantite", 1), key=f"qty_{i}")
-                        # --- NOUVELLE LOGIQUE POUR LE PRIX ---
-                        # Colonne 4 : Prix Unitaire
-                        with cols[3]:
-                            # On initialise le prix suggéré à 0
-                            suggested_price = 0.0
-                            # Si un produit du stock est sélectionné, on va chercher son prix
-                            if not is_custom_item and selected_product:
-                                match = st.session_state.stock[st.session_state.stock["Nom du Produit"] == selected_product]
-                                if not match.empty:
-                                    # On extrait la valeur de la colonne "Prix de Vente"
-                                    suggested_price = match["Prix de Vente"].iloc[0]
-
-                            # On utilise le prix suggéré comme valeur par défaut pour le champ de saisie
-                            item["prix_unitaire"] = st.number_input(
-                                "Prix Unit.", 
-                                min_value=0.0, 
-                                value=float(suggested_price), # Le prix est pré-rempli
-                                format="%.2f", 
-                                key=f"price_{i}"
-                            )
-        
-                            # Et on l'affiche en petit en dessous comme rappel
-                            if suggested_price > 0:
-                                st.caption(f"Suggéré : {suggested_price:,.0f}")
-                        # --- FIN DE LA NOUVELLE LOGIQUE ---
+                            filtered_products = st.session_state.stock["Nom du Produit"].tolist()
+                        product_list = ["--- Autre Produit/Service ---"] + filtered_products
+                        selected_product = st.selectbox("Choisir du stock", product_list, key=f"stock_select_{i}", label_visibility="collapsed")
             
-                        # Colonne 5 : Total (ne change pas)
-                        with cols[4]:
-                            item["total"] = item["quantite"] * item["prix_unitaire"]
-                            st.metric("Total", f"{item['total']:,.2f}")
+                    is_custom = selected_product == "--- Autre Produit/Service ---"
+                    description_value = selected_product if not is_custom else ""
+            
+                    with cols[1]:
+                        item_description = st.text_input("Description", value=description_value, key=f"desc_{i}", label_visibility="collapsed", placeholder=f"Description #{i+1}", disabled=(not is_custom))
+            
+                    with cols[2]:
+                        item_quantity = st.number_input("Qté", min_value=1, step=1, value=item.get("quantite", 1), key=f"qty_{i}", label_visibility="collapsed")
+            
+                    with cols[3]:
+                        suggested_price = 0.0
+                        if not is_custom:
+                            match = st.session_state.stock[st.session_state.stock["Nom du Produit"] == selected_product]
+                            if not match.empty:
+                                suggested_price = match["Prix de Vente"].iloc[0]
+                        item_price = st.number_input("Prix Unit.", min_value=0.0, value=float(suggested_price), format="%.2f", key=f"price_{i}", label_visibility="collapsed")
+            
+                    with cols[4]:
+                        st.metric("Total", f"{(item_quantity * item_price):,.0f}")
 
-                    soustotal_ht = sum(item['total'] for item in st.session_state.invoice_items)
+            # --- Boutons d'action ---
+            col_btn1, col_btn2, _ = st.columns([1, 2, 4])
+            with col_btn1:
+                if st.button("➕ Ajouter un article"):
+                    st.session_state.invoice_items.append({"quantite": 1, "prix_unitaire": 0.0})
+                    st.rerun()
+            with col_btn2:
+                if st.button("✅ Enregistrer la facture"):
+                    final_invoice_items = []
+                    soustotal_ht = 0
+                    for i in range(len(st.session_state.invoice_items)):
+                        selected_prod = st.session_state[f"stock_select_{i}"]
+                        description = selected_prod if selected_prod != "--- Autre Produit/Service ---" else st.session_state[f"desc_{i}"]
+                        qty = st.session_state[f"qty_{i}"]
+                        price = st.session_state[f"price_{i}"]
+                        item_total = qty * price
+                        soustotal_ht += item_total
+                        final_invoice_items.append({
+                            "nom_produit": selected_prod, "description": description,
+                            "quantite": qty, "prix_unitaire": price, "total": item_total
+                        })
+            
                     vat_rate = st.session_state.get('company_vat_rate', 0.0)
                     vat_amount = soustotal_ht * (vat_rate / 100.0)
                     total_ttc = soustotal_ht + vat_amount
-                
-                    st.markdown("---")
-                    st.metric("Sous-total HT", f"{soustotal_ht:,.2f} {st.session_state.currency}")
-                    st.text(f"TVA ({vat_rate}%) : {vat_amount:,.2f} {st.session_state.currency}")
-                    st.header(f"Total TTC : {total_ttc:,.2f} {st.session_state.currency}")
-                
-                    submit_col1, submit_col2 = st.columns(2)
-                    with submit_col1:
-                        if st.button("Ajouter un article"):
-                            st.session_state.invoice_items.append({"description": "", "quantite": 1, "prix_unitaire": 0.0, "total": 0.0}); st.rerun()
-                            st.rerun()
-                    with submit_col2:
-                        if st.button("Enregistrer la facture", on_click=reset_invoice_form):
-                            final_invoice_items = []
-                            for i in range(len(st.session_state.invoice_items)):
-                                # On récupère le nom du produit DEPUIS LA LISTE DÉROULANTE
-                                product_name_selected = st.session_state[f"stock_select_{i}"]
-        
-                                # Si c'est un produit custom, on prend la description manuelle
-                                if product_name_selected == "--- Autre Produit/Service ---":
-                                    description = st.session_state[f"desc_{i}"]
-                                else:
-                                    description = product_name_selected
 
-                                item = {
-                                    "nom_produit": product_name_selected, # On garde le nom du produit du stock
-                                    "description": description, # Description finale pour la facture
-                                    "quantite": st.session_state[f"qty_{i}"],
-                                    "prix_unitaire": st.session_state[f"price_{i}"],
-                                    "total": st.session_state[f"qty_{i}"] * st.session_state[f"price_{i}"]
-                                }
-                                final_invoice_items.append(item)
-                            # --- FIN DE LA CORRECTION MAJEURE ---
-
-                            # On prépare le dictionnaire pour la BDD avec la liste d'articles finale
-                            invoice_data_to_save = {
-                                "user_id": st.session_state.user.id,
-                                "number": numero_facture,
-                                "client": nom_client,
-                                "issue_date": str(date_emission),
-                                "status": "Brouillon",
-                                "total_ht": soustotal_ht,
-                                "tva": vat_amount,
-                                "total_ttc": total_ttc,
-                                "articles": final_invoice_items # On utilise la nouvelle liste
-                            }
-
-                            # On sauvegarde la facture
-                            success = add_invoice(invoice_data_to_save)
-
-                            if success:
-                                display_invoice_data = {
-                                    "Numéro": numero_facture,
-                                    "Client": nom_client,
-                                    "Date Émission": date_emission, # Doit être un objet date, pas du texte
-                                    "Montant": total_ttc,
-                                    "Statut": "Brouillon", # Assurez-vous que les autres colonnes y sont aussi si vous les affichez
-                                    "Articles": final_invoice_items
-                                }
-                                # On ajoute ce dictionnaire formaté à la liste d'affichage
-                                st.session_state.factures.append(display_invoice_data)
-                                # On enregistre la transaction associée
-                                transaction_success = add_transaction(date_emission, type_facture, total_ttc, 'Facturation', f"Facture {numero_facture} pour {nom_client}")
-        
-                                # Mise à jour du stock en utilisant la liste d'articles finale
-                                if type_facture == 'Revenu':
-                                    for item in final_invoice_items:
-                                        # On utilise la clé 'nom_produit' qui vient directement de la liste déroulante
-                                        product_name = item.get("nom_produit")
-                                        quantity_sold = item.get("quantite", 0)
+                    invoice_data_to_save = {
+                        "user_id": st.session_state.user.id, "number": numero_facture, "client": nom_client,
+                        "issue_date": str(date_emission), "status": "Brouillon", "total_ht": soustotal_ht,
+                        "tva": vat_amount, "total_ttc": total_ttc, "articles": final_invoice_items
+                    }
+            
+                    success = add_invoice(invoice_data_to_save)
+                    if success:
+                        add_transaction(date_emission, type_facture, total_ttc, 'Facturation', f"Facture {numero_facture} pour {nom_client}")
+                        if type_facture == 'Revenu':
+                            for item in final_invoice_items:
+                                product_name = item.get("nom_produit")
+                                quantity_sold = item.get("quantite", 0)
+                                if product_name and product_name != "--- Autre Produit/Service ---":
+                                    update_stock_quantity(st.session_state.user.id, product_name, -quantity_sold)
                 
-                                        if product_name and product_name != "--- Autre Produit/Service ---":
-                                            update_success, message = update_stock_quantity(st.session_state.user.id, product_name, -quantity_sold)
-                                            if update_success:
-                                                st.toast(message, icon="✅")
-                                                # On cherche l'index du produit dans notre liste en mémoire
-                                                product_index = st.session_state.stock[st.session_state.stock['Nom du Produit'] == product_name].index
-                
-                                                # S'il est trouvé, on met à jour la quantité directement
-                                                if not product_index.empty:
-                                                    st.session_state.stock.loc[product_index, 'Quantité'] -= quantity_sold
-                                            else:
-                                                st.warning(message)
-                                st.session_state.invoice_type = "Revenu" # On remet le type par défaut
-                                st.success(f"Facture {numero_facture} enregistrée.")
+                        reset_form_for_new_invoice()
+                        load_user_data(st.session_state.user.id) # On recharge tout pour être sûr
+                        st.success(f"Facture {numero_facture} enregistrée.")
+                        st.rerun()
         
             st.subheader("Historique des Factures")
             if not st.session_state.factures:
@@ -1539,6 +1464,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
