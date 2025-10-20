@@ -616,8 +616,8 @@ else:
             if not st.session_state.transactions.empty:
                 df_copy = st.session_state.transactions.copy()
         
-                df_copy['Date'] = pd.to_datetime(df_copy['Date'], utc=True)
-                df_copy['Mois'] = df_copy['Date'].dt.to_period('M')
+                df_copy['date'] = pd.to_datetime(df_copy['date'], utc=True)
+                df_copy['Mois'] = df_copy['date'].dt.to_period('M')
         
                 monthly_summary = df_copy.groupby(['Mois', 'Type'])['Montant'].sum().unstack(fill_value=0).reset_index()
                 monthly_summary['Mois'] = monthly_summary['Mois'].astype(str)
@@ -1477,6 +1477,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
