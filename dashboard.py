@@ -1113,15 +1113,21 @@ else:
             # S'assurer que le stock n'est pas vide avant de créer le formulaire
             if not st.session_state.stock.empty:
                 with st.form("purchase_stock_form", clear_on_submit=True):
-                    product_to_purchase = st.selectbox("Produit Acheté", options=st.session_state.stock["Nom du Produit"])
+                    product_to_purchase = st.selectbox("Produit Acheté", options=st.session_state.stock["product_name"])
                     quantity_purchased = st.number_input("Quantité Achetée", min_value=1, step=1)
         
                     if st.form_submit_button("Ajouter au Stock"):
-                        # On envoie une quantité POSITIVE pour un achat
-                        success = update_stock_quantity(st.session_state.user.id, product_to_purchase, quantity_purchased)
+                        success, message = update_stock_quantity(st.session_state.user.id, product_to_purchase, quantity_purchased)
                         if success:
-                            st.success(f"Stock de '{product_to_purchase}' mis à jour.")
+                            st.toast(message, icon="✅")
+                            # --- CORRECTION N°2 : Mettre à jour l'affichage local ---
+                            product_index = st.session_state.stock[st.session_state.stock['product_name'] == product_to_purchase].index
+                            if not product_index.empty:
+                                # On met à jour la quantité directement dans la mémoire de la session
+                                st.session_state.stock.loc[product_index, 'quantity'] += quantity_purchased
                             st.rerun()
+                    else:
+                        st.warning(message)
             else:
                 st.info("Ajoutez d'abord des produits à votre inventaire pour pouvoir enregistrer des achats.")
         elif sub_page == _("op_expenses"):
@@ -1504,6 +1510,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
