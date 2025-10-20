@@ -1089,15 +1089,15 @@ else:
                     with st.container(border=True):
                         col1, col2, col3, col4, col5, col6 = st.columns([2, 3, 1, 1, 1, 1])
                         with col1:
-                            st.write(row["Nom du Produit"])
+                            st.write(row["product_name"])
                         with col2:
-                            st.write(row["Description"])
+                            st.write(row["description"])
                         with col3:
-                            st.write(row["Quantité"])
+                            st.write(row["quantity"])
                         with col4:
-                            st.write(row["Prix d'Achat"])
+                            st.write(row["purchase_price"])
                         with col5:
-                            st.write(row["Prix de Vente"])
+                            st.write(row["sale_price"])
                         with col6:
                             if st.button("🗑️", key=f"del_stock_{row['id']}"):
                                 if delete_stock_item(st.session_state.user.id, row['id']):
@@ -1504,6 +1504,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
