@@ -44,16 +44,26 @@ def load_user_data(user_id):
         st.session_state.company_logo = profile.get('company_logo_url', None)
         st.session_state.company_signature = profile.get('company_signature_url', None)
         
-def reset_invoice_form():
-    """Fonction pour vider les champs du formulaire de facturation."""
-    # Réinitialise la liste des articles à une seule ligne vide
-    st.session_state.invoice_items = [{"quantite": 1, "prix_unitaire": 0.0}]
+def reset_form_for_new_invoice():
+    """Vide et réinitialise les champs du formulaire de facturation."""
+    # On supprime les clés des widgets de la ligne d'article pour les réinitialiser
+    keys_to_clear = [
+        key for key in st.session_state 
+        if key.startswith("search_") or key.startswith("stock_select_") or \
+           key.startswith("desc_") or key.startswith("qty_") or key.startswith("price_")
+    ]
+    for key in keys_to_clear:
+        if key in st.session_state:
+            del st.session_state[key]
     
-    # Réinitialise les champs de base de la facture
+    # On réinitialise les champs principaux du formulaire
     if "invoice_client" in st.session_state:
         st.session_state.invoice_client = ""
     if "invoice_type" in st.session_state:
         st.session_state.invoice_type = "Revenu"
+    
+    # On remet la liste d'articles à une seule ligne vide
+    st.session_state.invoice_items = [{"quantite": 1, "prix_unitaire": 0.0}]
     
     # --- NOUVEAU : CHARGEMENT DES COMPTES ---
     accounts_data = get_accounts(user_id)
@@ -1518,6 +1528,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
