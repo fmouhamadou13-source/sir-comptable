@@ -613,30 +613,34 @@ else:
         col_graphs1, col_graphs2 = st.columns(2)
         with col_graphs1:
             st.subheader(_("monthly_evolution"))
-            if not st.session_state.transactions.empty:
+            if not st.session_state.transactions.empty and 'date' in st.session_state.transactions.columns:
                 df_copy = st.session_state.transactions.copy()
         
+                # On utilise la colonne 'date' (nom de la BDD)
                 df_copy['date'] = pd.to_datetime(df_copy['date'], utc=True)
                 df_copy['Mois'] = df_copy['date'].dt.to_period('M')
+
+                # --- LA CORRECTION EST ICI ---
+                # On groupe par les colonnes brutes 'Mois', 'type', et on somme sur 'amount'
+                monthly_summary = df_copy.groupby(['Mois', 'type'])['amount'].sum().unstack(fill_value=0).reset_index()
         
-                monthly_summary = df_copy.groupby(['Mois', 'Type'])['Montant'].sum().unstack(fill_value=0).reset_index()
+                # Le reste de la logique est correct
                 monthly_summary['Mois'] = monthly_summary['Mois'].astype(str)
                 monthly_summary.sort_values(by='Mois', inplace=True)
-            
+        
                 if 'Revenu' not in monthly_summary.columns: monthly_summary['Revenu'] = 0
                 if 'Dépense' not in monthly_summary.columns: monthly_summary['Dépense'] = 0
 
                 fig_line = px.line(
                     monthly_summary,
                     x='Mois',
-                    y=['Revenu', 'Dépense'],  # ✅ Noms exacts des colonnes
-                    labels={'value': _('amount'), 'variable': _('type'), 'Mois': _('month')},
+                    y=['Revenu', 'Dépense'],
                     title=f"{_('revenues')} vs. {_('expenses')}"
                 )
                 st.plotly_chart(fig_line, use_container_width=True)
 
-            else:
-                st.info(_("no_data_for_graph"))
+           else:
+               st.info(_("no_data_for_graph"))
             
         with col_graphs2:
             st.subheader(_("expense_distribution"))
@@ -1477,6 +1481,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
