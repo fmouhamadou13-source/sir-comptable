@@ -441,6 +441,9 @@ else:
             supabase.auth.sign_out()
             st.session_state.logged_in = False
             st.session_state.user = None
+            if 'data_loaded' in st.session_state:
+                del st.session_state['data_loaded']
+        
             st.rerun()
 
         st.markdown("---")
@@ -1517,6 +1520,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
