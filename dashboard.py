@@ -920,8 +920,13 @@ else:
 
                         facture_num_safe = safe_encode(facture.get('number'))
                         client_safe = safe_encode(facture.get('client'))
-                        date_obj = pd.to_datetime(facture.get('issue_date'))
-                        date_emission_safe = safe_encode(date_obj.strftime('%d/%m/%Y'))
+                        date_emission_safe = "" # On définit une valeur par défaut (chaîne vide)
+                        issue_date_val = facture.get('issue_date')
+
+                        # On ne formate la date que si elle n'est pas vide
+                        if pd.notna(issue_date_val):
+                            date_obj = pd.to_datetime(issue_date_val)
+                            date_emission_safe = safe_encode(date_obj.strftime('%d/%m/%Y'))
 
                         pdf.set_font("Helvetica", 'B', 14)
                         pdf.cell(0, 10, text=f"Facture N {facture_num_safe}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
@@ -1466,6 +1471,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
