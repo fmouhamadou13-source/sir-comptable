@@ -252,7 +252,7 @@ supabase: Client = init_supabase_connection()
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.user = None
-    st.session_state.data_loaded = False
+    st.session_state.data_loaded = False  # <-- LA LIGNE MANQUANTE EST ICI
     st.session_state.page = "Tableau de Bord"
     st.session_state.currency = "FCFA"
     st.session_state.language = "Français"
@@ -263,12 +263,12 @@ if "logged_in" not in st.session_state:
     st.session_state.invoice_items = [{"quantite": 1, "prix_unitaire": 0.0}]
     st.session_state.salaries = pd.DataFrame(columns=["Nom de l'employé", "Poste", "Salaire Brut"])
     st.session_state.stock = pd.DataFrame(columns=["Nom du Produit", "Description", "Quantité", "Prix d'Achat", "Prix de Vente"])
-    st.session_state.company_logo = None
     st.session_state.company_name = ""
     st.session_state.company_address = ""
     st.session_state.company_contact = ""
-    st.session_state.company_signature = None
     st.session_state.company_vat_rate = 0.0
+    st.session_state.company_logo = None
+    st.session_state.company_signature = None
     st.session_state.bp_step = 0
     st.session_state.bp_data = {}
 
@@ -284,7 +284,7 @@ if not st.session_state.logged_in:
         pass # On reste déconnecté si la récupération échoue
 
 # 3. Chargement des données si on est connecté ET que les données n'ont pas encore été chargées
-if st.session_state.logged_in and not st.session_state.data_loaded:
+if st.session_state.get("logged_in") and not st.session_state.get("data_loaded"):
     load_user_data(st.session_state.user.id)
     st.session_state.data_loaded = True
 
@@ -1474,6 +1474,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
