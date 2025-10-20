@@ -28,53 +28,31 @@ from db import (
 # dashboard.py
 
 def load_user_data(user_id):
-    """Charge TOUTES les données de l'utilisateur en mode ESPION."""
-    st.warning("--- DÉBUT DU DÉBOGAGE de load_user_data ---")
-    st.info(f"ID Utilisateur reçu : {user_id}")
-
-    # --- On espionne le chargement des factures ---
-    st.write("1. Tentative de chargement des factures avec get_invoices()...")
-    try:
-        invoices_data = get_invoices(user_id)
+    """Charge TOUTES les données brutes de l'utilisateur depuis la BDD."""
+    st.session_state.transactions = pd.DataFrame(get_transactions(user_id) or [])
+    st.session_state.comptes = pd.DataFrame(get_accounts(user_id) or [])
+    st.session_state.salaries = pd.DataFrame(get_employees(user_id) or [])
+    st.session_state.factures = get_invoices(user_id) or []
+    st.session_state.stock = pd.DataFrame(get_stock(user_id) or [])
+    
+    profile = get_user_profile(user_id)
+    if profile:
+        st.session_state.company_name = profile.get('company_name', '')
+        st.session_state.company_address = profile.get('company_address', '')
+        st.session_state.company_contact = profile.get('company_contact', '')
+        st.session_state.company_vat_rate = profile.get('company_vat_rate', 0.0)
+        st.session_state.company_logo = profile.get('company_logo_url', None)
+        st.session_state.company_signature = profile.get('company_signature_url', None)
         
-        st.write("2. Données brutes reçues de la base de données :")
-        st.json(invoices_data) # Affiche les données brutes reçues
-        
-        if invoices_data:
-            st.success(f"3. SUCCÈS : {len(invoices_data)} facture(s) trouvée(s) dans la base de données.")
-            
-            # On essaie de traiter les données
-            try:
-                df_invoices = pd.DataFrame(invoices_data)
-                df_invoices.rename(columns={
-                    'number': 'Numéro', 'client': 'Client', 'issue_date': 'Date Émission',
-                    'total_ttc': 'Montant', 'status': 'Statut', 'articles': 'Articles'
-                }, inplace=True)
-                df_invoices['Date Émission'] = pd.to_datetime(df_invoices['Date Émission'])
-                st.session_state.factures = df_invoices.to_dict('records')
-                st.success("4. Traitement des factures et sauvegarde dans la session réussis.")
-            except Exception as e:
-                st.error(f"ERREUR PENDANT LE TRAITEMENT des factures : {e}")
-
-        else:
-            st.error("3. ÉCHEC : Aucune facture trouvée pour cet ID dans la base de données.")
-            st.session_state.factures = []
-
-    except Exception as e:
-        st.error(f"ERREUR BLOQUANTE dans la fonction get_invoices() : {e}")
-        st.session_state.factures = []
-        
-    st.warning("--- FIN DU DÉBOGAGE ---")
 def reset_invoice_form():
     """Fonction pour vider les champs du formulaire de facturation."""
-    # Réinitialise la liste des articles à une seule ligne vide
-    st.session_state.invoice_items = [{"description": "", "quantite": 1, "prix_unitaire": 0.0, "total": 0.0}]
-    
-    # Réinitialise les champs de base de la facture en vérifiant s'ils existent
+    keys_to_clear = [key for key in st.session_state if key.startswith("search_") or key.startswith("stock_select_") or key.startswith("desc_") or key.startswith("qty_") or key.startswith("price_")]
+    for key in keys_to_clear:
+        if key in st.session_state:
+            del st.session_state[key]
     if "invoice_client" in st.session_state:
         st.session_state.invoice_client = ""
-    if "invoice_type" in st.session_state:
-        st.session_state.invoice_type = "Revenu"
+    st.session_state.invoice_items = [{"quantite": 1, "prix_unitaire": 0.0}]
     
     # --- NOUVEAU : CHARGEMENT DES COMPTES ---
     accounts_data = get_accounts(user_id)
@@ -269,17 +247,59 @@ def init_supabase_connection():
     return create_client(url, key)
 
 supabase: Client = init_supabase_connection()
-try:
-    session = supabase.auth.get_session()
-except Exception:
-    session = None
-if session and not st.session_state.get("logged_in"):
-    st.session_state.logged_in = True
-    st.session_state.user = session.user
-    # On s'assure de charger les données si ce n'est pas déjà fait
-    if 'data_loaded' not in st.session_state:
-        load_user_data(st.session_state.user.id)
-        st.session_state.data_loaded = True
+
+# 1. Initialisation complète de la mémoire de la session (une seule fois)
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+    st.session_state.user = None
+    st.session_state.data_loaded = False
+    st.session_state.page = "Tableau de Bord"
+    st.session_state.currency = "FCFA"
+    st.session_state.language = "Français"
+    st.session_state.sarcasm_mode = True
+    st.session_state.transactions = pd.DataFrame(columns=["Date", "Type", "Montant", "Catégorie", "Description"])
+    st.session_state.comptes = pd.DataFrame(columns=["Nom du Compte", "Solde Actuel", "Type"])
+    st.session_state.factures = []
+    st.session_state.invoice_items = [{"quantite": 1, "prix_unitaire": 0.0}]
+    st.session_state.salaries = pd.DataFrame(columns=["Nom de l'employé", "Poste", "Salaire Brut"])
+    st.session_state.stock = pd.DataFrame(columns=["Nom du Produit", "Description", "Quantité", "Prix d'Achat", "Prix de Vente"])
+    st.session_state.company_logo = None
+    st.session_state.company_name = ""
+    st.session_state.company_address = ""
+    st.session_state.company_contact = ""
+    st.session_state.company_signature = None
+    st.session_state.company_vat_rate = 0.0
+    st.session_state.bp_step = 0
+    st.session_state.bp_data = {}
+
+# 2. Tentative de restauration de session si on n'est pas connecté
+if not st.session_state.logged_in:
+    try:
+        session = supabase.auth.get_session()
+        if session and session.user:
+            st.session_state.logged_in = True
+            st.session_state.user = session.user
+            # Pas de st.rerun() ici, on laisse le script continuer naturellement
+    except Exception:
+        pass # On reste déconnecté si la récupération échoue
+
+# 3. Chargement des données si on est connecté ET que les données n'ont pas encore été chargées
+if st.session_state.logged_in and not st.session_state.data_loaded:
+    load_user_data(st.session_state.user.id)
+    st.session_state.data_loaded = True
+
+# --- FIN DU BLOC DE DÉMARRAGE ---
+
+
+# --- DÉFINITION D'UNE FONCTION DE DÉCONNEXION PROPRE ---
+def log_out():
+    """Déconnecte l'utilisateur et nettoie TOUTE la session."""
+    supabase.auth.sign_out()
+    # On garde une copie des clés avant de les supprimer
+    keys_to_delete = list(st.session_state.keys())
+    for key in keys_to_delete:
+        del st.session_state[key]
+    st.rerun()
 
 # --- Initialisation de la mémoire ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
@@ -459,13 +479,7 @@ else:
         st.write(f"Connecté en tant que : {st.session_state.user.email}")
 
         if st.button("Déconnexion"):
-            supabase.auth.sign_out()
-            st.session_state.logged_in = False
-            st.session_state.user = None
-            if 'data_loaded' in st.session_state:
-                del st.session_state['data_loaded']
-        
-            st.rerun()
+            log_out()
 
         st.markdown("---")
         try:
@@ -773,17 +787,6 @@ else:
     
             # --- FORMULAIRE DE CRÉATION DE FACTURE ---
             with st.expander("Créer une nouvelle facture", expanded=True):
-        
-                # Définition de la fonction de reset (placée ici pour la clarté)
-                def reset_form_for_new_invoice():
-                    keys_to_clear = [key for key in st.session_state if key.startswith("search_") or key.startswith("stock_select_") or key.startswith("desc_") or key.startswith("qty_") or key.startswith("price_")]
-                    for key in keys_to_clear:
-                        if key in st.session_state:
-                            del st.session_state[key]
-                    if "invoice_client" in st.session_state:
-                        st.session_state.invoice_client = ""
-                    st.session_state.invoice_items = [{"quantite": 1, "prix_unitaire": 0.0}]
-
                 # --- Champs principaux de la facture ---
                 type_facture = st.radio("Type de facture", ["Revenu", "Dépense"], key="invoice_type")
                 col1, col2 = st.columns(2)
@@ -1471,6 +1474,7 @@ else:
                         except Exception as e:
                             st.error(f"Erreur lors de la mise à jour : {e}")
                         
+
 
 
 
