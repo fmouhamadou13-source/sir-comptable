@@ -424,8 +424,20 @@ else:
                         # Préparation du contexte (simplifié)
                         contexte_financier = f"Résumé financier: Solde net = {solde_net:,.0f} {st.session_state.currency}, Revenus totaux = {total_revenus:,.0f} {st.session_state.currency}, Dépenses totales = {total_depenses:,.0f} {st.session_state.currency}."
                     
-                        prompt_final = f"En tant que majordome financier sarcastique, réponds à la question '{prompt}' en te basant sur ce contexte : {contexte_financier}"
+                        # --- NOUVELLE STRUCTURE DE PROMPT ---
+                        # On utilise un format plus structuré pour guider l'IA
+                        prompt_final = f"""
+                        <|system|>
+                        Tu es Sir Comptable, un majordome financier sarcastique, très compétent et qui va droit au but. Ta mission est de répondre à la question de l'utilisateur. Tu dois baser ta réponse STRICTEMENT sur les faits du contexte financier fourni. N'invente jamais de données. Sois bref et percutant. Réponds en {st.session_state.language}.
 
+                        [Contexte Financier]
+                        {contexte_financier}
+                        </s>
+                        <|user|>
+                        {prompt}
+                        </s>
+                        <|assistant|>
+                        """
                         response = requests.post(API_URL, headers=headers, json={"inputs": prompt_final, "parameters": {"max_new_tokens": 150}})
                         output = response.json()
 
@@ -982,6 +994,7 @@ else:
                             update_user_subscription(user['id'], new_status)
                             st.success(f"Profil de {user['email']} mis à jour.")
                             st.rerun()
+
 
 
 
