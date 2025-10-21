@@ -597,8 +597,15 @@ else:
                                 product_name = item.get("nom_produit")
                                 quantity_sold = item.get("quantite", 0)
                                 if product_name and product_name != "--- Autre Produit/Service ---":
-                                    update_stock_quantity(st.session_state.user.id, product_name, -quantity_sold)
-                        
+                                    update_success, message = update_stock_quantity(st.session_state.user.id, product_name, -quantity_sold)
+                                    if update_success:
+                                        # On met à jour l'affichage local du stock
+                                        product_index = st.session_state.stock[st.session_state.stock['product_name'] == product_name].index
+                                        if not product_index.empty:
+                                            st.session_state.stock.loc[product_index, 'quantity'] -= quantity_sold
+                                        st.toast(message, icon="✅") # Petite notification de succès
+                                    else:
+                                        st.warning(message) # Avertissement visible si ça échoue
                         reset_invoice_form()
                         st.success(f"Facture {numero_facture} enregistrée.")
                         st.rerun()
@@ -1013,6 +1020,7 @@ else:
                             update_user_subscription(user['id'], new_status)
                             st.success(f"Profil de {user['email']} mis à jour.")
                             st.rerun()
+
 
 
 
