@@ -571,7 +571,7 @@ else:
                         soustotal_ht += item_total
                         st.metric("Total", f"{item_total:,.0f}")
                 
-                vat_rate = st.session_state.get('company_vat_rate', 0.0)
+                vat_rate = st.session_state.get('company_vat_rate') or 0.0
                 vat_amount = soustotal_ht * (vat_rate / 100.0)
                 total_ttc = soustotal_ht + vat_amount
                 st.markdown("---")
@@ -1034,6 +1034,7 @@ else:
                             update_user_subscription(user['id'], new_status)
                             st.success(f"Profil de {user['email']} mis à jour.")
                             st.rerun()
+
 
 
 
