@@ -199,7 +199,10 @@ if "logged_in" not in st.session_state:
     st.session_state.factures = []
     st.session_state.invoice_items = [{"quantite": 1, "prix_unitaire": 0.0}]
     st.session_state.salaries = pd.DataFrame()
-    st.session_state.stock = pd.DataFrame()
+    st.session_state.stock = pd.DataFrame(columns=[
+        'id', 'user_id', 'product_name', 'description', 
+        'quantity', 'purchase_price', 'sale_price'
+    ])
     st.session_state.company_name = ""
     st.session_state.company_address = ""
     st.session_state.company_contact = ""
@@ -1020,6 +1023,7 @@ else:
                             update_user_subscription(user['id'], new_status)
                             st.success(f"Profil de {user['email']} mis à jour.")
                             st.rerun()
+
 
 
 
