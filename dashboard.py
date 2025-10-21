@@ -336,14 +336,44 @@ else:
 
     if st.session_state.page == "Tableau de Bord":
         st.title(_("dashboard_title"))
-        st.markdown("---")
+    
+        col_toggle, col_button = st.columns([4, 1])
+        with col_toggle:
+            st.session_state.sarcasm_mode = st.toggle("Mode Sarcasme", value=st.session_state.sarcasm_mode)
+        with col_button:
+            refresh_comments = st.button("💬 Obtenir un commentaire")
 
+        st.markdown("---")
+        
         total_revenus, total_depenses, solde_net = 0, 0, 0
         if not st.session_state.transactions.empty and 'amount' in st.session_state.transactions.columns:
             st.session_state.transactions['amount'] = pd.to_numeric(st.session_state.transactions['amount'], errors='coerce').fillna(0)
             total_revenus = st.session_state.transactions[st.session_state.transactions['type'] == 'Revenu']['amount'].sum()
             total_depenses = st.session_state.transactions[st.session_state.transactions['type'] == 'Dépense']['amount'].sum()
             solde_net = total_revenus - total_depenses
+        # --- Logique des commentaires IA ---
+        if refresh_comments and st.session_state.sarcasme_mode:
+            with st.spinner("Sir Comptable réfléchit..."):
+                try:
+                    API_URL = st.secrets["HF_API_URL"]
+                    headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
+
+                    def query_ai_comment(prompt_text):
+                        response = requests.post(API_URL, headers=headers, json={"inputs": prompt_text, "parameters": {"max_new_tokens": 50, "return_full_text": False}})
+                        output = response.json()
+                        if isinstance(output, list) and 'generated_text' in output[0]:
+                            return output[0]['generated_text'].strip()
+                        return "..."
+
+                    lang = st.session_state.language
+                    prompt_revenu = f"En tant que majordome financier sarcastique, commente en une phrase très courte ce revenu total de {total_revenus:,.0f} {st.session_state.currency}. Réponds en {lang}."
+                    st.session_state.revenue_comment = query_ai_comment(prompt_revenu)
+                
+                    prompt_solde = f"En tant que majordome financier sarcastique, commente en une phrase très courte ce solde net de {solde_net:,.0f} {st.session_state.currency}. Réponds en {lang}."
+                    st.session_state.balance_comment = query_ai_comment(prompt_solde)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Impossible de contacter Sir Comptable pour un commentaire : {e}")
         
         with st.container(border=True):
             col1, col2, col3 = st.columns(3)
@@ -380,6 +410,39 @@ else:
                     st.info(_("no_expense_to_show"))
             else:
                 st.info(_("no_expense_to_show"))
+        # --- Section "Parler à Sir Comptable" ---
+        st.subheader("Parler à Sir Comptable")
+        prompt = st.text_input("Posez votre question sur vos finances :", label_visibility="collapsed")
+        if st.button("Envoyer"):
+            if prompt:
+                st.write(f"**Vous :** {prompt}")
+                with st.spinner("Sir Comptable rédige sa réponse..."):
+                    try:
+                        API_URL = st.secrets["HF_API_URL"]
+                        headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
+                    
+                        # Préparation du contexte (simplifié)
+                        contexte_financier = f"Résumé financier: Solde net = {solde_net:,.0f} {st.session_state.currency}, Revenus totaux = {total_revenus:,.0f} {st.session_state.currency}, Dépenses totales = {total_depenses:,.0f} {st.session_state.currency}."
+                    
+                        prompt_final = f"En tant que majordome financier sarcastique, réponds à la question '{prompt}' en te basant sur ce contexte : {contexte_financier}"
+
+                        response = requests.post(API_URL, headers=headers, json={"inputs": prompt_final, "parameters": {"max_new_tokens": 150}})
+                        output = response.json()
+
+                        if isinstance(output, list) and 'generated_text' in output[0]:
+                            st.success(f"**Sir Comptable :** {output[0]['generated_text'].strip()}")
+                        elif 'error' in output:
+                            st.error(f"Erreur de l'IA : {output['error']}")
+                        else:
+                            st.warning("Réponse inattendue de l'IA.")
+
+                    except KeyError:
+                        st.error("Le Token ou l'URL de l'API Hugging Face est manquant dans les secrets.")
+                    except Exception as e:
+                        st.error(f"Sir Comptable est momentanément sans voix : {e}")
+            else:
+                st.warning("Veuillez entrer une question.") 
+
     elif st.session_state.page == "Mes Comptes":
         st.title(_("accounts_title"))
         st.markdown(_("accounts_description"))
@@ -919,6 +982,7 @@ else:
                             update_user_subscription(user['id'], new_status)
                             st.success(f"Profil de {user['email']} mis à jour.")
                             st.rerun()
+
 
 
 
