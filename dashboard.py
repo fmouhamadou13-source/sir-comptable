@@ -352,7 +352,7 @@ else:
             total_depenses = st.session_state.transactions[st.session_state.transactions['type'] == 'Dépense']['amount'].sum()
             solde_net = total_revenus - total_depenses
         # --- Logique des commentaires IA ---
-        if refresh_comments and st.session_state.sarcasme_mode:
+        if refresh_comments and st.session_state.sarcasm_mode:
             with st.spinner("Sir Comptable réfléchit..."):
                 try:
                     API_URL = st.secrets["HF_API_URL"]
@@ -982,6 +982,7 @@ else:
                             update_user_subscription(user['id'], new_status)
                             st.success(f"Profil de {user['email']} mis à jour.")
                             st.rerun()
+
 
 
 
