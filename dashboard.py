@@ -35,7 +35,18 @@ def load_user_data(user_id):
     st.session_state.comptes = pd.DataFrame(get_accounts(user_id) or [])
     st.session_state.salaries = pd.DataFrame(get_employees(user_id) or [])
     st.session_state.factures = get_invoices(user_id) or []
-    st.session_state.stock = pd.DataFrame(get_stock(user_id) or [])
+    
+    # --- LA CORRECTION FINALE EST ICI ---
+    stock_data = get_stock(user_id) or []
+    if stock_data:
+        st.session_state.stock = pd.DataFrame(stock_data)
+    else:
+        # Si le stock est vide, on crée un DataFrame avec les bonnes colonnes
+        st.session_state.stock = pd.DataFrame(columns=[
+            'id', 'user_id', 'product_name', 'description', 
+            'quantity', 'purchase_price', 'sale_price'
+        ])
+    # --- FIN DE LA CORRECTION ---
     
     profile = get_user_profile(user_id)
     if profile:
@@ -1023,6 +1034,7 @@ else:
                             update_user_subscription(user['id'], new_status)
                             st.success(f"Profil de {user['email']} mis à jour.")
                             st.rerun()
+
 
 
 
