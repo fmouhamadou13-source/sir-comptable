@@ -771,154 +771,155 @@ else:
                     st.session_state.bp_data = {}
                     st.rerun()  
             
-        # --- PAGE RAPPORTS ---
-        elif st.session_state.page == "Rapports":
-            st.title("Rapports Financiers")
-            st.markdown("Analysez vos performances avec des rapports personnalisés.")
+    # --- PAGE RAPPORTS ---
+    elif st.session_state.page == "Rapports":
+        st.title("Rapports Financiers")
+        st.markdown("Analysez vos performances avec des rapports personnalisés.")
         
-            st.subheader("Filtres")
-            col1, col2 = st.columns(2)
-            with col1:
-                type_donnees = st.selectbox("Type de données", ["Dépenses et Revenus", "Dépenses seulement", "Revenus seulement"])
-            with col2:
-                period_options = ["Année en cours", "Semestre en cours", "Trimestre en cours", "Mois en cours"] + [date(2000, m, 1).strftime('%B') for m in range(1, 13)]
-                periode = st.selectbox("Période", period_options)
+        st.subheader("Filtres")
+        col1, col2 = st.columns(2)
+        with col1:
+            type_donnees = st.selectbox("Type de données", ["Dépenses et Revenus", "Dépenses seulement", "Revenus seulement"])
+        with col2:
+            period_options = ["Année en cours", "Semestre en cours", "Trimestre en cours", "Mois en cours"] + [date(2000, m, 1).strftime('%B') for m in range(1, 13)]
+            periode = st.selectbox("Période", period_options)
 
-            st.markdown("---")
-            df_filtered = st.session_state.transactions.copy()
+        st.markdown("---")
+        df_filtered = st.session_state.transactions.copy()
 
-            if not df_filtered.empty:
-                df_filtered['date'] = pd.to_datetime(df_filtered['date'], utc=True)
-                today = datetime.utcnow().date()
-                start_date, end_date = None, today
+        if not df_filtered.empty:
+            df_filtered['date'] = pd.to_datetime(df_filtered['date'], utc=True)
+            today = datetime.utcnow().date()
+            start_date, end_date = None, today
 
-                if periode == "Mois en cours": start_date = today.replace(day=1)
-                elif periode == "Trimestre en cours":
-                    q = (today.month - 1) // 3 + 1
-                    start_date = today.replace(month=(q - 1) * 3 + 1, day=1)
-                elif periode == "Semestre en cours":
-                    start_month = 1 if today.month <= 6 else 7
-                    start_date = today.replace(month=start_month, day=1)
-                elif periode == "Année en cours":
-                    start_date = today.replace(month=1, day=1)
-                else:
-                    try:
-                        month_number = period_options.index(periode) - 3
-                        df_filtered = df_filtered[df_filtered['date'].dt.month == month_number]
-                        start_date = None
-                    except (ValueError, IndexError): pass
+            if periode == "Mois en cours": start_date = today.replace(day=1)
+            elif periode == "Trimestre en cours":
+                q = (today.month - 1) // 3 + 1
+                start_date = today.replace(month=(q - 1) * 3 + 1, day=1)
+            elif periode == "Semestre en cours":
+                start_month = 1 if today.month <= 6 else 7
+                start_date = today.replace(month=start_month, day=1)
+            elif periode == "Année en cours":
+                start_date = today.replace(month=1, day=1)
+            else:
+                try:
+                    month_number = period_options.index(periode) - 3
+                    df_filtered = df_filtered[df_filtered['date'].dt.month == month_number]
+                    start_date = None
+                except (ValueError, IndexError): pass
             
-                if start_date:
-                    start_date_aware = pd.Timestamp(start_date, tz='UTC')
-                    end_date_aware = pd.Timestamp(end_date, tz='UTC').replace(hour=23, minute=59, second=59)
-                    df_filtered = df_filtered[df_filtered['date'].between(start_date_aware, end_date_aware)]
+            if start_date:
+                start_date_aware = pd.Timestamp(start_date, tz='UTC')
+                end_date_aware = pd.Timestamp(end_date, tz='UTC').replace(hour=23, minute=59, second=59)
+                df_filtered = df_filtered[df_filtered['date'].between(start_date_aware, end_date_aware)]
             
             if type_donnees == "Dépenses seulement":
                 df_filtered = df_filtered[df_filtered['type'] == 'Dépense']
             elif type_donnees == "Revenus seulement":
                 df_filtered = df_filtered[df_filtered['type'] == 'Revenu']
 
-            st.subheader(f"Résultats pour : {periode}")
-            if df_filtered.empty:
-                st.warning("Aucune donnée à afficher pour les filtres sélectionnés.")
-            else:
-                display_df_filtered = df_filtered.rename(columns={'date':'Date', 'type':'Type', 'amount':'Montant', 'category':'Catégorie', 'description':'Description'})
-                st.dataframe(display_df_filtered[['Date','Type','Montant','Catégorie','Description']], use_container_width=True)
+        st.subheader(f"Résultats pour : {periode}")
+        if df_filtered.empty:
+            st.warning("Aucune donnée à afficher pour les filtres sélectionnés.")
+        else:
+            display_df_filtered = df_filtered.rename(columns={'date':'Date', 'type':'Type', 'amount':'Montant', 'category':'Catégorie', 'description':'Description'})
+            st.dataframe(display_df_filtered[['Date','Type','Montant','Catégorie','Description']], use_container_width=True)
 
-        # --- PAGE ABONNEMENT ---
-        elif st.session_state.page == "Abonnement":
-            st.title("Abonnement Premium")
-            st.markdown("Passez à la version Premium pour débloquer toutes les fonctionnalités.")
-            st.metric("Prix", f"10,000 {st.session_state.currency}/mois")
-            st.markdown("---")
-            st.subheader("Payer avec Wave")
-            try:
-                wave_link = st.secrets["WAVE_PAYMENT_LINK"]
-                st.markdown(f'<a href="{wave_link}" target="_blank"><button>Payer 10,000 {st.session_state.currency} avec Wave</button></a>', unsafe_allow_html=True)
-                st.info("Après avoir payé, le statut de votre compte sera mis à jour manuellement par l'administrateur.")
-            except KeyError:
-                st.warning("Le service de paiement Wave n'est pas encore configuré par l'administrateur.")
-        # --- PAGE PARAMÈTRES ---
-        elif st.session_state.page == "Paramètres":
-            st.title(_("settings_title"))
-            st.subheader(_("settings_general"))
+    # --- PAGE ABONNEMENT ---
+    elif st.session_state.page == "Abonnement":
+        st.title("Abonnement Premium")
+        st.markdown("Passez à la version Premium pour débloquer toutes les fonctionnalités.")
+        st.metric("Prix", f"10,000 {st.session_state.currency}/mois")
+        st.markdown("---")
+        st.subheader("Payer avec Wave")
+        try:
+            wave_link = st.secrets["WAVE_PAYMENT_LINK"]
+            st.markdown(f'<a href="{wave_link}" target="_blank"><button>Payer 10,000 {st.session_state.currency} avec Wave</button></a>', unsafe_allow_html=True)
+            st.info("Après avoir payé, le statut de votre compte sera mis à jour manuellement par l'administrateur.")
+        except KeyError:
+            st.warning("Le service de paiement Wave n'est pas encore configuré par l'administrateur.")
+    # --- PAGE PARAMÈTRES ---
+    elif st.session_state.page == "Paramètres":
+        st.title(_("settings_title"))
+        st.subheader(_("settings_general"))
         
-            lang_options = ["Français", "Anglais"]
-            lang_idx = lang_options.index(st.session_state.language) if st.session_state.language in lang_options else 0
-            if st.selectbox(_("settings_language"), options=lang_options, index=lang_idx) != st.session_state.language:
-                st.session_state.language = lang_options[1-lang_idx]
-                st.rerun()
+        lang_options = ["Français", "Anglais"]
+        lang_idx = lang_options.index(st.session_state.language) if st.session_state.language in lang_options else 0
+        if st.selectbox(_("settings_language"), options=lang_options, index=lang_idx) != st.session_state.language:
+            st.session_state.language = lang_options[1-lang_idx]
+            st.rerun()
 
-            devises = ["FCFA", "EUR", "USD"]
-            devise_idx = devises.index(st.session_state.currency) if st.session_state.currency in devises else 0
-            if st.selectbox(_("settings_currency"), devises, index=devise_idx) != st.session_state.currency:
-                st.session_state.currency = devises[1-devise_idx] # This logic might be buggy, simpler is better
-                st.rerun()
+        devises = ["FCFA", "EUR", "USD"]
+        devise_idx = devises.index(st.session_state.currency) if st.session_state.currency in devises else 0
+        if st.selectbox(_("settings_currency"), devises, index=devise_idx) != st.session_state.currency:
+            st.session_state.currency = devises[1-devise_idx] # This logic might be buggy, simpler is better
+            st.rerun()
 
-            st.markdown("---")
-            st.subheader(_("settings_invoice_info"))
-            st.markdown(_("settings_invoice_desc"))
+        st.markdown("---")
+        st.subheader(_("settings_invoice_info"))
+        st.markdown(_("settings_invoice_desc"))
 
-            with st.form("invoice_info_form"):
-                logo_file = st.file_uploader(_("settings_upload_logo"), type=['png', 'jpg', 'jpeg'])
-                signature_file = st.file_uploader(_("settings_upload_signature"), type=['png', 'jpg', 'jpeg'])
-                company_name = st.text_input(_("settings_company_name"), value=st.session_state.get('company_name', ''))
-                company_address = st.text_area(_("settings_address"), value=st.session_state.get('company_address', ''))
-                company_contact = st.text_input(_("settings_contact"), value=st.session_state.get('company_contact', ''))
-                company_vat_rate = st.number_input(_("settings_vat_rate"), value=float(st.session_state.get('company_vat_rate', 0.0) or 0.0), min_value=0.0, max_value=100.0, step=0.1, format="%.2f")
+        with st.form("invoice_info_form"):
+            logo_file = st.file_uploader(_("settings_upload_logo"), type=['png', 'jpg', 'jpeg'])
+            signature_file = st.file_uploader(_("settings_upload_signature"), type=['png', 'jpg', 'jpeg'])
+            company_name = st.text_input(_("settings_company_name"), value=st.session_state.get('company_name', ''))
+            company_address = st.text_area(_("settings_address"), value=st.session_state.get('company_address', ''))
+            company_contact = st.text_input(_("settings_contact"), value=st.session_state.get('company_contact', ''))
+            company_vat_rate = st.number_input(_("settings_vat_rate"), value=float(st.session_state.get('company_vat_rate', 0.0) or 0.0), min_value=0.0, max_value=100.0, step=0.1, format="%.2f")
             
-                if st.form_submit_button(_("settings_save_info")):
-                    user_id = st.session_state.user.id
-                    settings_to_update = {
-                        "company_name": company_name, "company_address": company_address,
-                        "company_contact": company_contact, "company_vat_rate": company_vat_rate
-                    }
-                    if logo_file is not None:
-                        logo_bytes = logo_file.getvalue()
-                        logo_base64 = base64.b64encode(logo_bytes).decode('utf-8')
-                        settings_to_update["company_logo_url"] = f"data:image/png;base64,{logo_base64}"
-                    if signature_file is not None:
-                        signature_bytes = signature_file.getvalue()
-                        signature_base64 = base64.b64encode(signature_bytes).decode('utf-8')
-                        settings_to_update["company_signature_url"] = f"data:image/png;base64,{signature_base64}"
+            if st.form_submit_button(_("settings_save_info")):
+                user_id = st.session_state.user.id
+                settings_to_update = {
+                    "company_name": company_name, "company_address": company_address,
+                    "company_contact": company_contact, "company_vat_rate": company_vat_rate
+                }
+                if logo_file is not None:
+                    logo_bytes = logo_file.getvalue()
+                    logo_base64 = base64.b64encode(logo_bytes).decode('utf-8')
+                    settings_to_update["company_logo_url"] = f"data:image/png;base64,{logo_base64}"
+                if signature_file is not None:
+                    signature_bytes = signature_file.getvalue()
+                    signature_base64 = base64.b64encode(signature_bytes).decode('utf-8')
+                    settings_to_update["company_signature_url"] = f"data:image/png;base64,{signature_base64}"
                 
-                    if update_profile_settings(user_id, settings_to_update):
-                        load_user_data(user_id)
-                        st.success(_("settings_info_updated"))
-                        st.rerun()
+                if update_profile_settings(user_id, settings_to_update):
+                    load_user_data(user_id)
+                    st.success(_("settings_info_updated"))
+                    st.rerun()
         
-            if st.session_state.get('company_logo'):
-                st.write(_("settings_current_logo"))
-                st.image(st.session_state.company_logo, width=100)
-            if st.session_state.get('company_signature'):
-                st.write(_("settings_current_signature"))
-                st.image(st.session_state.company_signature, width=150)
+        if st.session_state.get('company_logo'):
+            st.write(_("settings_current_logo"))
+            st.image(st.session_state.company_logo, width=100)
+        if st.session_state.get('company_signature'):
+            st.write(_("settings_current_signature"))
+            st.image(st.session_state.company_signature, width=150)
 
-        # --- PAGE ADMIN PANEL ---
-        elif st.session_state.page == "Admin Panel":
-            st.title("👑 Panneau d'administration")
-            if st.session_state.user.email != "fmouhamadou13@gmail.com":
-                st.error("⛔ Accès refusé."); st.stop()
+    # --- PAGE ADMIN PANEL ---
+    elif st.session_state.page == "Admin Panel":
+        st.title("👑 Panneau d'administration")
+        if st.session_state.user.email != "fmouhamadou13@gmail.com":
+            st.error("⛔ Accès refusé."); st.stop()
         
-            users = get_all_users()
-            if not users:
-                st.warning("Aucun utilisateur trouvé.")
-            else:
-                st.subheader("Liste des utilisateurs")
-                for user in users:
-                    with st.container(border=True):
-                        col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
-                        with col1: st.write(f"**{user['email']}**")
-                        with col2:
-                            new_role = st.selectbox("Rôle", ["user", "admin"], index=0 if user.get("role") == "user" else 1, key=f"role_{user['id']}")
-                        with col3:
-                            new_status = st.selectbox("Abonnement", ["free", "premium"], index=0 if user.get("subscription_status") == "free" else 1, key=f"sub_{user['id']}")
-                        with col4:
-                            if st.button("Mettre à jour", key=f"update_{user['id']}"):
-                                update_user_role(user['id'], new_role)
-                                update_user_subscription(user['id'], new_status)
-                                st.success(f"Profil de {user['email']} mis à jour.")
-                                st.rerun()
+        users = get_all_users()
+        if not users:
+            st.warning("Aucun utilisateur trouvé.")
+        else:
+            st.subheader("Liste des utilisateurs")
+            for user in users:
+                with st.container(border=True):
+                    col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
+                    with col1: st.write(f"**{user['email']}**")
+                    with col2:
+                        new_role = st.selectbox("Rôle", ["user", "admin"], index=0 if user.get("role") == "user" else 1, key=f"role_{user['id']}")
+                    with col3:
+                        new_status = st.selectbox("Abonnement", ["free", "premium"], index=0 if user.get("subscription_status") == "free" else 1, key=f"sub_{user['id']}")
+                    with col4:
+                        if st.button("Mettre à jour", key=f"update_{user['id']}"):
+                            update_user_role(user['id'], new_role)
+                            update_user_subscription(user['id'], new_status)
+                            st.success(f"Profil de {user['email']} mis à jour.")
+                            st.rerun()
+
 
 
 
