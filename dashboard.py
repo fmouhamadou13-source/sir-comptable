@@ -45,7 +45,7 @@ def load_user_data(user_id):
         st.session_state.company_vat_rate = profile.get('company_vat_rate', 0.0)
         st.session_state.company_logo = profile.get('company_logo_url', None)
         st.session_state.company_signature = profile.get('company_signature_url', None)
-
+        
 def reset_invoice_form():
     """Vide et réinitialise les champs du formulaire de facturation."""
     keys_to_clear = [key for key in st.session_state if key.startswith("search_") or key.startswith("stock_select_") or key.startswith("desc_") or key.startswith("qty_") or key.startswith("price_")]
@@ -415,7 +415,7 @@ else:
             st.info("Aucune transaction.")
     elif st.session_state.page == "Sir Business":
         st.title(_("business_title"))
-        sub_page_options = [_("home"), _("invoicing"), "Gestion de Stock", _("salaries")]
+        sub_page_options = [_("home"), _("invoicing"), "Gestion de Stock", _("op_expenses"), _("salaries"), _("planning")]
         sub_page = st.selectbox(_("choose_section"), sub_page_options)
 
         if sub_page == _("home"):
@@ -919,6 +919,7 @@ else:
                                 update_user_subscription(user['id'], new_status)
                                 st.success(f"Profil de {user['email']} mis à jour.")
                                 st.rerun()
+
 
 
 
