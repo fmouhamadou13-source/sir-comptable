@@ -53,7 +53,7 @@ def reset_invoice_form():
         if key in st.session_state:
             del st.session_state[key]
     if "invoice_client" in st.session_state:
-        st.session_state.invoice_client = ""
+        del st.session_state.invoice_client
     st.session_state.invoice_items = [{"quantite": 1, "prix_unitaire": 0.0}]
 
 def log_out():
@@ -982,6 +982,7 @@ else:
                             update_user_subscription(user['id'], new_status)
                             st.success(f"Profil de {user['email']} mis à jour.")
                             st.rerun()
+
 
 
 
