@@ -415,7 +415,7 @@ else:
         st.subheader(_("talk_to_sir_comptable"))
         prompt = st.text_input("ask_your_question", label_visibility="collapsed", placeholder=_("ask_your_question"))
     
-        if st.button(_("send")):
+        if st.button("Envoyer"):
             if prompt:
                 st.write(f"**{_('you')} :** {prompt}")
                 with st.spinner(_("thinking")):
@@ -424,9 +424,9 @@ else:
                         headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
                     
                         transactions_df = st.session_state.transactions
-                        depenses_df = transactions_df[transactions_df['Type'] == 'Dépense']
-                        revenus = transactions_df[transactions_df['Type'] == 'Revenu']['Montant'].sum()
-                        depenses = depenses_df['Montant'].sum()
+                        depenses_df = transactions_df[transactions_df['type'] == 'Dépense']
+                        revenus = transactions_df[transactions_df['type'] == 'Revenu']['amount'].sum()
+                        depenses = depenses_df['amount'].sum()
                         solde = revenus - depenses
                     
                         recents_articles_str = "Aucune facture récente."
@@ -462,7 +462,7 @@ else:
                         else:
                             st.warning(f"{_('error_ai_unexpected')} : {output}")
 
-                    except KeyError:
+                    except KeyError as e:
                         if 'HF_TOKEN' in str(e) or 'HF_API_URL' in str(e):
                             st.error(_("error_hf_token_missing"))
                         else:
@@ -1013,6 +1013,7 @@ else:
                             update_user_subscription(user['id'], new_status)
                             st.success(f"Profil de {user['email']} mis à jour.")
                             st.rerun()
+
 
 
 
