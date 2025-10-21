@@ -838,10 +838,11 @@ else:
                         with col2:
                             new_role = st.selectbox("Rôle", ["user", "admin"], index=0 if user.get("role") == "user" else 1, key=f"role_{user['id']}")
                         with col3:
-                        new_status = st.selectbox("Abonnement", ["free", "premium"], index=0 if user.get("subscription_status") == "free" else 1, key=f"sub_{user['id']}")
+                            new_status = st.selectbox("Abonnement", ["free", "premium"], index=0 if user.get("subscription_status") == "free" else 1, key=f"sub_{user['id']}")
                         with col4:
                             if st.button("Mettre à jour", key=f"update_{user['id']}"):
                                 update_user_role(user['id'], new_role)
                                 update_user_subscription(user['id'], new_status)
                                 st.success(f"Profil de {user['email']} mis à jour.")
                                 st.rerun()
+
