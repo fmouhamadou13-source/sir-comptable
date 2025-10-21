@@ -154,6 +154,8 @@ TEXTS = {
     "choose_section": {"Français": "Choisissez une section", "Anglais": "Choose a section"},
     "home": {"Français": "Accueil", "Anglais": "Home"},
     "invoicing": {"Français": "Facturation", "Anglais": "Invoicing"},
+    "op_expenses": {"Français": "Dépenses de fonctionnement", "Anglais": "Operating Expenses"},
+    "planning": {"Français": "Planification", "Anglais": "Planning"},
     "salaries": {"Français": "Salaires", "Anglais": "Salaries"},
     
     # Settings Page
@@ -917,6 +919,7 @@ else:
                                 update_user_subscription(user['id'], new_status)
                                 st.success(f"Profil de {user['email']} mis à jour.")
                                 st.rerun()
+
 
 
 
