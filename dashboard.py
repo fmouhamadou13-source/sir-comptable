@@ -351,30 +351,31 @@ else:
             total_revenus = st.session_state.transactions[st.session_state.transactions['type'] == 'Revenu']['amount'].sum()
             total_depenses = st.session_state.transactions[st.session_state.transactions['type'] == 'Dépense']['amount'].sum()
             solde_net = total_revenus - total_depenses
-        # --- Logique des commentaires IA ---
+        # La logique de l'IA n'est exécutée que si l'on clique sur le bouton
         if refresh_comments and st.session_state.sarcasm_mode:
-            with st.spinner("Sir Comptable réfléchit..."):
+            with st.spinner(_("thinking")):
                 try:
                     API_URL = st.secrets["HF_API_URL"]
                     headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
 
                     def query_ai_comment(prompt_text):
-                        response = requests.post(API_URL, headers=headers, json={"inputs": prompt_text, "parameters": {"max_new_tokens": 50, "return_full_text": False}})
+                        formatted_prompt = f"<s>[INST] {prompt_text} [/INST]"
+                        response = requests.post(API_URL, headers=headers, json={"inputs": formatted_prompt, "parameters": {"max_new_tokens": 50, "return_full_text": False, "do_sample": True, "temperature": 0.7}})
                         output = response.json()
                         if isinstance(output, list) and 'generated_text' in output[0]:
                             return output[0]['generated_text'].strip()
-                        return "..."
+                        return _("error_ai_unexpected")
 
                     lang = st.session_state.language
-                    prompt_revenu = f"En tant que majordome financier sarcastique, commente en une phrase très courte ce revenu total de {total_revenus:,.0f} {st.session_state.currency}. Réponds en {lang}."
+                    prompt_revenu = f"Tu es Sir Comptable, un majordome sarcastique. En une seule phrase très courte et percutante, commente un revenu total de {total_revenus:,.0f} {st.session_state.currency}. Réponds en {lang}."
                     st.session_state.revenue_comment = query_ai_comment(prompt_revenu)
                 
-                    prompt_solde = f"En tant que majordome financier sarcastique, commente en une phrase très courte ce solde net de {solde_net:,.0f} {st.session_state.currency}. Réponds en {lang}."
+                    prompt_solde = f"Tu es Sir Comptable, un majordome sarcastique. En une seule phrase très courte et percutante, commente un solde net de {solde_net:,.0f} {st.session_state.currency}. Réponds en {lang}."
                     st.session_state.balance_comment = query_ai_comment(prompt_solde)
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Impossible de contacter Sir Comptable pour un commentaire : {e}")
-        
+                    st.error(f"{_('error_critical')}: {e}")
+
         with st.container(border=True):
             col1, col2, col3 = st.columns(3)
             with col1: st.metric(_("revenues"), f"{total_revenus:,.0f} {st.session_state.currency}")
@@ -411,49 +412,67 @@ else:
             else:
                 st.info(_("no_expense_to_show"))
         # --- Section "Parler à Sir Comptable" ---
-        st.subheader("Parler à Sir Comptable")
-        prompt = st.text_input("Posez votre question sur vos finances :", label_visibility="collapsed")
-        if st.button("Envoyer"):
+        st.subheader(_("talk_to_sir_comptable"))
+        prompt = st.text_input("ask_your_question", label_visibility="collapsed", placeholder=_("ask_your_question"))
+    
+        if st.button(_("send")):
             if prompt:
-                st.write(f"**Vous :** {prompt}")
-                with st.spinner("Sir Comptable rédige sa réponse..."):
+                st.write(f"**{_('you')} :** {prompt}")
+                with st.spinner(_("thinking")):
                     try:
                         API_URL = st.secrets["HF_API_URL"]
                         headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
                     
-                        # Préparation du contexte (simplifié)
-                        contexte_financier = f"Résumé financier: Solde net = {solde_net:,.0f} {st.session_state.currency}, Revenus totaux = {total_revenus:,.0f} {st.session_state.currency}, Dépenses totales = {total_depenses:,.0f} {st.session_state.currency}."
+                        transactions_df = st.session_state.transactions
+                        depenses_df = transactions_df[transactions_df['Type'] == 'Dépense']
+                        revenus = transactions_df[transactions_df['Type'] == 'Revenu']['Montant'].sum()
+                        depenses = depenses_df['Montant'].sum()
+                        solde = revenus - depenses
                     
-                        # --- NOUVELLE STRUCTURE DE PROMPT ---
-                        # On utilise un format plus structuré pour guider l'IA
-                        prompt_final = f"""
-                        <|system|>
-                        Tu es Sir Comptable, un majordome financier sarcastique, très compétent et qui va droit au but. Ta mission est de répondre à la question de l'utilisateur. Tu dois baser ta réponse STRICTEMENT sur les faits du contexte financier fourni. N'invente jamais de données. Sois bref et percutant. Réponds en {st.session_state.language}.
+                        recents_articles_str = "Aucune facture récente."
+                        if st.session_state.factures:
+                            recents_articles = []
+                            for facture in st.session_state.factures[-5:]:
+                                for item in facture.get('Articles', []):
+                                    description = item.get('description', 'N/A')
+                                    montant = item.get('total', item.get('montant', 0))
+                                    recents_articles.append(f"- {description} ({montant:,.0f} {st.session_state.currency})")
+                            recents_articles_str = "\n".join(recents_articles)
+                        contexte_financier = (
+                            f"Résumé financier : Solde net = {solde:,.0f} {st.session_state.currency}. "
+                            f"Voici le détail des articles des dernières factures pour analyse :\n{recents_articles_str}"
+                        )
+                    
+                        prompt_final = (
+                            f"<s>[INST] {_('ai_persona')} "
+                            f"{_('ai_context_label')} : {contexte_financier} "
+                            f"{_('ai_question_label')} : '{prompt}' [/INST]"
+                        )
 
-                        [Contexte Financier]
-                        {contexte_financier}
-                        </s>
-                        <|user|>
-                        {prompt}
-                        </s>
-                        <|assistant|>
-                        """
-                        response = requests.post(API_URL, headers=headers, json={"inputs": prompt_final, "parameters": {"max_new_tokens": 150}})
-                        output = response.json()
+                        def query(payload):
+                            response = requests.post(API_URL, headers=headers, json=payload)
+                            return response.json()
 
+                        output = query({"inputs": prompt_final, "parameters": {"max_new_tokens": 512, "return_full_text": False, "do_sample": True, "top_p": 0.9, "temperature": 0.7}})
+                    
                         if isinstance(output, list) and 'generated_text' in output[0]:
                             st.success(f"**Sir Comptable :** {output[0]['generated_text'].strip()}")
                         elif 'error' in output:
-                            st.error(f"Erreur de l'IA : {output['error']}")
+                            st.error(f"{_('error_ai_response')} : {output['error']}")
                         else:
-                            st.warning("Réponse inattendue de l'IA.")
+                            st.warning(f"{_('error_ai_unexpected')} : {output}")
 
                     except KeyError:
-                        st.error("Le Token ou l'URL de l'API Hugging Face est manquant dans les secrets.")
+                        if 'HF_TOKEN' in str(e) or 'HF_API_URL' in str(e):
+                            st.error(_("error_hf_token_missing"))
+                        else:
+                            st.error(f"Erreur de structure dans vos données (probable facture) : Clé manquante -> {e}")
+                            
                     except Exception as e:
-                        st.error(f"Sir Comptable est momentanément sans voix : {e}")
+                        st.error(f"Une erreur critique est survenue : {e}")
             else:
-                st.warning("Veuillez entrer une question.") 
+                st.warning(_("enter_a_question"))
+ 
 
     elif st.session_state.page == "Mes Comptes":
         st.title(_("accounts_title"))
@@ -994,6 +1013,7 @@ else:
                             update_user_subscription(user['id'], new_status)
                             st.success(f"Profil de {user['email']} mis à jour.")
                             st.rerun()
+
 
 
 
